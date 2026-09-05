@@ -21,6 +21,11 @@ public final class CommandRegistry {
         register("RPOP", RpopCommand::new);
         register("LRANGE", LrangeCommand::new);
         register("LLEN", LlenCommand::new);
+        register("SADD", SaddCommand::new);
+        register("SREM", SremCommand::new);
+        register("SMEMBERS", SmembersCommand::new);
+        register("SISMEMBER", SismemberCommand::new);
+        register("SCARD", ScardCommand::new);
     }
 
     public void register(String name, Supplier<Command> factory) {

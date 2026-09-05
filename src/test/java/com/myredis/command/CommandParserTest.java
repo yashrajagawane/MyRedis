@@ -58,6 +58,17 @@ class CommandParserTest {
     }
 
     @Test
+    void supportsSetCommands() {
+        assertEquals("2", parser.parse("SADD tags java redis").execute().response());
+        assertEquals("0", parser.parse("SADD tags java").execute().response());
+        assertEquals("1", parser.parse("SISMEMBER tags java").execute().response());
+        assertEquals("2", parser.parse("SCARD tags").execute().response());
+        assertEquals("java redis", parser.parse("SMEMBERS tags").execute().response());
+        assertEquals("1", parser.parse("SREM tags java").execute().response());
+        assertEquals("0", parser.parse("SISMEMBER tags java").execute().response());
+    }
+
+    @Test
     void rejectsBlankAndUnknownCommands() {
         assertThrows(CommandParseException.class, () -> parser.parse("  "));
         assertThrows(CommandParseException.class, () -> parser.parse("NOPE"));

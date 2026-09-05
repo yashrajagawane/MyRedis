@@ -23,4 +23,14 @@ public interface StorageEngine {
     List<String> range(String key, int start, int stop);
 
     int listLength(String key);
+
+    int addSet(String key, List<String> members);
+
+    int removeSet(String key, List<String> members);
+
+    List<String> setMembers(String key);
+
+    boolean isSetMember(String key, String member);
+
+    int setCardinality(String key);
 }

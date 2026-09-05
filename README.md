@@ -4,7 +4,7 @@ MyRedis is a learning-first Redis-inspired in-memory database built from scratch
 
 ## Current status
 
-Phase 5a is implemented: a blocking TCP server accepts concurrent clients through Java 21 virtual threads, tracks active connections for graceful shutdown, and stores String and List values in a thread-safe in-memory engine. Sets, Hashes, and Sorted Sets are reserved for later sub-phases.
+Phase 5b is implemented: a blocking TCP server accepts concurrent clients through Java 21 virtual threads, tracks active connections for graceful shutdown, and stores String, List, and Set values in a thread-safe in-memory engine. Hashes and Sorted Sets are reserved for later sub-phases.
 
 ## Run
 

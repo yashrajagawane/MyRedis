@@ -6,6 +6,8 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /** Thread-safe String storage for concurrent Phase 4 clients. */
@@ -106,6 +108,82 @@ public final class InMemoryStorageEngine implements StorageEngine {
         }
     }
 
+    @Override
+    public int addSet(String key, List<String> members) {
+        requireKey(key);
+        RedisObject object = values.computeIfAbsent(key,
+                ignored -> new RedisObject(RedisType.SET, new HashSet<String>()));
+        requireType(key, object, RedisType.SET);
+        synchronized (object) {
+            Set<String> set = setValue(object);
+            int added = 0;
+            for (String member : members) {
+                if (set.add(member)) {
+                    added++;
+                }
+            }
+            return added;
+        }
+    }
+
+    @Override
+    public int removeSet(String key, List<String> members) {
+        RedisObject object = values.get(key);
+        if (object == null) {
+            return 0;
+        }
+        requireType(key, object, RedisType.SET);
+        synchronized (object) {
+            Set<String> set = setValue(object);
+            int removed = 0;
+            for (String member : members) {
+                if (set.remove(member)) {
+                    removed++;
+                }
+            }
+            if (set.isEmpty()) {
+                values.remove(key, object);
+            }
+            return removed;
+        }
+    }
+
+    @Override
+    public List<String> setMembers(String key) {
+        RedisObject object = values.get(key);
+        if (object == null) {
+            return List.of();
+        }
+        requireType(key, object, RedisType.SET);
+        synchronized (object) {
+            return setValue(object).stream().sorted().toList();
+        }
+    }
+
+    @Override
+    public boolean isSetMember(String key, String member) {
+        RedisObject object = values.get(key);
+        if (object == null) {
+            return false;
+        }
+        requireType(key, object, RedisType.SET);
+        synchronized (object) {
+            return setValue(object).contains(member);
+        }
+    }
+
+    @Override
+    public int setCardinality(String key) {
+        RedisObject object = values.get(key);
+        if (object == null) {
+            return 0;
+        }
+        requireType(key, object, RedisType.SET);
+        synchronized (object) {
+            return setValue(object).size();
+        }
+    }
+
     private Optional<String> pop(String key, boolean left) {
         RedisObject object = values.get(key);
         if (object == null) {
@@ -125,6 +203,11 @@ public final class InMemoryStorageEngine implements StorageEngine {
     @SuppressWarnings("unchecked")
     private static Deque<String> listValue(RedisObject object) {
         return (Deque<String>) object.value();
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Set<String> setValue(RedisObject object) {
+        return (Set<String>) object.value();
     }
 
     private static int normalizeIndex(int index, int size) {
