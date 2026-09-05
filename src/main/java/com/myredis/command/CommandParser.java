@@ -5,22 +5,33 @@ import java.util.List;
 import com.myredis.storage.StorageEngine;
 import com.myredis.storage.InMemoryStorageEngine;
 import com.myredis.expiration.ExpirationManager;
+import com.myredis.persistence.PersistenceManager;
 
 /** Converts the Phase 2 whitespace command format into an executable command. */
 public final class CommandParser {
     private final CommandRegistry registry;
     private final StorageEngine storage;
     private final ExpirationManager expiration;
+    private final PersistenceManager persistence;
 
     public CommandParser(CommandRegistry registry, StorageEngine storage) {
         this(registry, storage, storage instanceof InMemoryStorageEngine inMemory
-                ? inMemory.expirationManager() : new ExpirationManager());
+                ? inMemory.expirationManager() : new ExpirationManager(),
+                storage instanceof InMemoryStorageEngine inMemory
+                        ? PersistenceManager.disabled(inMemory) : null);
     }
 
     public CommandParser(CommandRegistry registry, StorageEngine storage, ExpirationManager expiration) {
+        this(registry, storage, expiration, storage instanceof InMemoryStorageEngine inMemory
+                ? PersistenceManager.disabled(inMemory) : null);
+    }
+
+    public CommandParser(CommandRegistry registry, StorageEngine storage,
+                         ExpirationManager expiration, PersistenceManager persistence) {
         this.registry = registry;
         this.storage = storage;
         this.expiration = expiration;
+        this.persistence = persistence;
     }
 
     public ParsedCommand parse(String input) {
@@ -34,22 +45,36 @@ public final class CommandParser {
         Command command = registry.find(name)
                 .orElseThrow(() -> new CommandParseException(
                         "unknown command '" + tokens.getFirst() + "'"));
-        return new ParsedCommand(name, command, tokens.subList(1, tokens.size()), storage, expiration);
+        return new ParsedCommand(name, command, tokens.subList(1, tokens.size()), storage, expiration, persistence);
     }
 
     public record ParsedCommand(
             String name, Command command, List<String> arguments, StorageEngine storage,
-            ExpirationManager expiration) {
+            ExpirationManager expiration, PersistenceManager persistence) {
         public ParsedCommand {
             arguments = List.copyOf(arguments);
             if (storage == null) {
                 throw new IllegalArgumentException("storage is required");
             }
             if (expiration == null) throw new IllegalArgumentException("expiration is required");
+            if (persistence == null) throw new IllegalArgumentException("persistence is required");
         }
 
         public CommandResult execute() {
-            return command.execute(new CommandContext(arguments, storage, expiration));
+            CommandResult result = command.execute(new CommandContext(arguments, storage, expiration, persistence));
+            if (!result.response().startsWith("-ERR") && isMutating(name)) {
+                persistence.record(java.util.stream.Stream.concat(java.util.stream.Stream.of(name), arguments.stream()).toList());
+            }
+            return result;
+        }
+
+        public CommandResult executeWithoutPersistence() {
+            return command.execute(new CommandContext(arguments, storage, expiration, persistence));
+        }
+
+        private static boolean isMutating(String command) {
+            return java.util.Set.of("SET", "DEL", "LPUSH", "RPUSH", "LPOP", "RPOP", "SADD", "SREM",
+                    "HSET", "HDEL", "ZADD", "ZREM", "EXPIRE", "PERSIST").contains(command);
         }
     }
 }

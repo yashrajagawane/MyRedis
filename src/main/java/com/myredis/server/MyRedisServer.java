@@ -4,6 +4,7 @@ import com.myredis.command.CommandParser;
 import com.myredis.command.CommandRegistry;
 import com.myredis.expiration.ExpirationManager;
 import com.myredis.expiration.ExpirationScheduler;
+import com.myredis.persistence.PersistenceManager;
 import com.myredis.storage.InMemoryStorageEngine;
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -22,11 +23,11 @@ public final class MyRedisServer {
     private final AtomicBoolean running = new AtomicBoolean();
     private final ConnectionRegistry connectionRegistry = new ConnectionRegistry();
     private final ExecutorService clientExecutor = Executors.newVirtualThreadPerTaskExecutor();
-    private final ExpirationManager expiration = new ExpirationManager();
-    private final InMemoryStorageEngine storage = new InMemoryStorageEngine(expiration);
-    private final CommandParser commandParser = new CommandParser(
-            new CommandRegistry(), storage, expiration);
-    private final ExpirationScheduler expirationScheduler = new ExpirationScheduler(expiration, storage);
+    private final ExpirationManager expiration;
+    private final InMemoryStorageEngine storage;
+    private final CommandParser commandParser;
+    private final ExpirationScheduler expirationScheduler;
+    private final PersistenceManager persistence;
     private volatile ServerSocket serverSocket;
 
     public MyRedisServer(int port) {
@@ -34,6 +35,24 @@ public final class MyRedisServer {
             throw new IllegalArgumentException("port must be between 0 and 65535");
         }
         this.port = port;
+        this.expiration = new ExpirationManager();
+        this.storage = new InMemoryStorageEngine(expiration);
+        this.persistence = PersistenceManager.disabled(storage);
+        this.commandParser = new CommandParser(new CommandRegistry(), storage, expiration, persistence);
+        this.expirationScheduler = new ExpirationScheduler(expiration, storage);
+    }
+
+    public MyRedisServer(int port, InMemoryStorageEngine storage, CommandParser commandParser,
+                         ExpirationManager expiration, PersistenceManager persistence) {
+        if (port < 0 || port > 65_535) {
+            throw new IllegalArgumentException("port must be between 0 and 65535");
+        }
+        this.port = port;
+        this.storage = storage;
+        this.commandParser = commandParser;
+        this.expiration = expiration;
+        this.persistence = persistence;
+        this.expirationScheduler = new ExpirationScheduler(expiration, storage);
     }
 
     public void start() throws IOException {
@@ -62,6 +81,7 @@ public final class MyRedisServer {
             connectionRegistry.closeAll();
             clientExecutor.shutdownNow();
             expirationScheduler.close();
+            persistence.close();
             LOGGER.info("MyRedis stopped");
         }
     }

@@ -29,6 +29,48 @@ public final class InMemoryStorageEngine implements StorageEngine {
         return expiration;
     }
 
+    /** Returns replayable commands representing the current keyspace. */
+    public List<List<String>> snapshotCommands() {
+        List<List<String>> commands = new ArrayList<>();
+        for (Map.Entry<String, RedisObject> entry : values.entrySet()) {
+            String key = entry.getKey();
+            RedisObject object = entry.getValue();
+            synchronized (object) {
+                switch (object.type()) {
+                    case STRING -> commands.add(List.of("SET", key, (String) object.value()));
+                    case LIST -> {
+                        List<String> args = new ArrayList<>();
+                        args.add("RPUSH"); args.add(key); args.addAll(listValue(object));
+                        if (args.size() > 2) commands.add(List.copyOf(args));
+                    }
+                    case SET -> {
+                        List<String> args = new ArrayList<>();
+                        args.add("SADD"); args.add(key); args.addAll(setValue(object).stream().sorted().toList());
+                        if (args.size() > 2) commands.add(List.copyOf(args));
+                    }
+                    case HASH -> {
+                        List<String> args = new ArrayList<>();
+                        args.add("HSET"); args.add(key);
+                        hashValue(object).entrySet().stream().sorted(Map.Entry.comparingByKey())
+                                .forEach(field -> { args.add(field.getKey()); args.add(field.getValue()); });
+                        commands.add(List.copyOf(args));
+                    }
+                    case ZSET -> {
+                        List<String> args = new ArrayList<>();
+                        args.add("ZADD"); args.add(key);
+                        sortedSetValue(object).ordered.forEach(item -> {
+                            args.add(Double.toString(item.score())); args.add(item.member());
+                        });
+                        commands.add(List.copyOf(args));
+                    }
+                }
+            }
+            long ttl = expiration.ttlSeconds(key).orElse(-1);
+            if (ttl > 0) commands.add(List.of("EXPIRE", key, Long.toString(ttl)));
+        }
+        return List.copyOf(commands);
+    }
+
     @Override
     public void setString(String key, String value) {
         requireKey(key);
