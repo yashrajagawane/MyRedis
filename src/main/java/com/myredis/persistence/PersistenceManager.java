@@ -5,6 +5,9 @@ import com.myredis.storage.InMemoryStorageEngine;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,6 +17,7 @@ public final class PersistenceManager implements AutoCloseable {
     private final Path aofPath;
     private final Path snapshotPath;
     private final InMemoryStorageEngine storage;
+    private final ScheduledExecutorService snapshotExecutor;
     private AofWriter aofWriter;
 
     public static PersistenceManager disabled(InMemoryStorageEngine storage) {
@@ -26,6 +30,8 @@ public final class PersistenceManager implements AutoCloseable {
         this.snapshotPath = snapshotPath;
         this.storage = storage;
         this.aofWriter = new AofWriter(aofPath);
+        this.snapshotExecutor = Executors.newSingleThreadScheduledExecutor();
+        snapshotExecutor.scheduleAtFixedRate(this::snapshotQuietly, 60, 60, TimeUnit.SECONDS);
     }
 
     private PersistenceManager(InMemoryStorageEngine storage) {
@@ -33,6 +39,7 @@ public final class PersistenceManager implements AutoCloseable {
         this.aofPath = null;
         this.snapshotPath = null;
         this.storage = storage;
+        this.snapshotExecutor = null;
     }
 
     public void record(List<String> command) {
@@ -60,10 +67,19 @@ public final class PersistenceManager implements AutoCloseable {
     public synchronized void close() {
         if (!enabled) return;
         try {
+            snapshotExecutor.shutdownNow();
             snapshot();
             aofWriter.close();
         } catch (IOException exception) {
             LOGGER.error("Could not close persistence cleanly", exception);
+        }
+    }
+
+    private void snapshotQuietly() {
+        try {
+            snapshot();
+        } catch (IOException exception) {
+            LOGGER.error("Periodic snapshot failed", exception);
         }
     }
 }

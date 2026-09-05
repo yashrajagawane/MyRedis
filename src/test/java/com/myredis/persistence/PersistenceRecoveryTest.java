@@ -12,6 +12,18 @@ import org.junit.jupiter.api.Test;
 
 class PersistenceRecoveryTest {
     @Test
+    void supportsEverySecondAndNeverFsyncPolicies() throws Exception {
+        Path directory = Files.createTempDirectory("myredis-fsync-");
+        try (AofWriter everySecond = new AofWriter(directory.resolve("every.aof"), FsyncPolicy.EVERY_SECOND);
+             AofWriter never = new AofWriter(directory.resolve("never.aof"), FsyncPolicy.NEVER)) {
+            everySecond.append(java.util.List.of("SET", "a", "one"));
+            never.append(java.util.List.of("SET", "b", "two"));
+        }
+        assertEquals(true, Files.size(directory.resolve("every.aof")) > 0);
+        assertEquals(true, Files.size(directory.resolve("never.aof")) > 0);
+    }
+
+    @Test
     void restoresSnapshotAndReplaysAofTail() throws Exception {
         Path directory = Files.createTempDirectory("myredis-persistence-");
         Path aof = directory.resolve("myredis.aof");
