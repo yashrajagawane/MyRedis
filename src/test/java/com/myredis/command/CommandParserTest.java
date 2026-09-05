@@ -79,6 +79,16 @@ class CommandParserTest {
     }
 
     @Test
+    void supportsSortedSetCommands() {
+        assertEquals("3", parser.parse("ZADD scores 20 bob 10 alice 10 anna").execute().response());
+        assertEquals("alice anna bob", parser.parse("ZRANGE scores 0 -1").execute().response());
+        assertEquals("10.0", parser.parse("ZSCORE scores alice").execute().response());
+        assertEquals("1", parser.parse("ZRANK scores anna").execute().response());
+        assertEquals("1", parser.parse("ZREM scores anna").execute().response());
+        assertEquals("alice bob", parser.parse("ZRANGE scores 0 -1").execute().response());
+    }
+
+    @Test
     void rejectsBlankAndUnknownCommands() {
         assertThrows(CommandParseException.class, () -> parser.parse("  "));
         assertThrows(CommandParseException.class, () -> parser.parse("NOPE"));

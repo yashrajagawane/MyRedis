@@ -253,6 +253,87 @@ public final class InMemoryStorageEngine implements StorageEngine {
         }
     }
 
+    @Override
+    public int addSortedSetMembers(String key, List<String> scoreMembers) {
+        requireKey(key);
+        RedisObject object = values.computeIfAbsent(key,
+                ignored -> new RedisObject(RedisType.ZSET, new SortedSetValue()));
+        requireType(key, object, RedisType.ZSET);
+        synchronized (object) {
+            SortedSetValue sortedSet = sortedSetValue(object);
+            int added = 0;
+            for (int index = 0; index < scoreMembers.size(); index += 2) {
+                double score = parseScore(scoreMembers.get(index), key);
+                String member = scoreMembers.get(index + 1);
+                if (!sortedSet.scores.containsKey(member)) added++;
+                sortedSet.add(member, score);
+            }
+            return added;
+        }
+    }
+
+    @Override
+    public List<String> sortedSetRange(String key, int start, int stop) {
+        RedisObject object = values.get(key);
+        if (object == null) return List.of();
+        requireType(key, object, RedisType.ZSET);
+        synchronized (object) {
+            List<String> members = sortedSetValue(object).ordered.stream()
+                    .map(SortedSetValue.Entry::member).toList();
+            int from = normalizeIndex(start, members.size());
+            int to = normalizeIndex(stop, members.size());
+            if (from > to || from >= members.size() || to < 0) return List.of();
+            from = Math.max(from, 0);
+            to = Math.min(to, members.size() - 1);
+            return List.copyOf(members.subList(from, to + 1));
+        }
+    }
+
+    @Override
+    public Optional<Double> sortedSetScore(String key, String member) {
+        RedisObject object = values.get(key);
+        if (object == null) return Optional.empty();
+        requireType(key, object, RedisType.ZSET);
+        synchronized (object) {
+            return Optional.ofNullable(sortedSetValue(object).scores.get(member));
+        }
+    }
+
+    @Override
+    public int removeSortedSetMembers(String key, List<String> members) {
+        RedisObject object = values.get(key);
+        if (object == null) return 0;
+        requireType(key, object, RedisType.ZSET);
+        synchronized (object) {
+            SortedSetValue sortedSet = sortedSetValue(object);
+            int removed = 0;
+            for (String member : members) {
+                Double score = sortedSet.scores.remove(member);
+                if (score != null) {
+                    sortedSet.ordered.remove(new SortedSetValue.Entry(score, member));
+                    removed++;
+                }
+            }
+            if (sortedSet.scores.isEmpty()) values.remove(key, object);
+            return removed;
+        }
+    }
+
+    @Override
+    public Optional<Integer> sortedSetRank(String key, String member) {
+        RedisObject object = values.get(key);
+        if (object == null) return Optional.empty();
+        requireType(key, object, RedisType.ZSET);
+        synchronized (object) {
+            int rank = 0;
+            for (SortedSetValue.Entry entry : sortedSetValue(object).ordered) {
+                if (entry.member().equals(member)) return Optional.of(rank);
+                rank++;
+            }
+            return Optional.empty();
+        }
+    }
+
     private Optional<String> pop(String key, boolean left) {
         RedisObject object = values.get(key);
         if (object == null) {
@@ -282,6 +363,20 @@ public final class InMemoryStorageEngine implements StorageEngine {
     @SuppressWarnings("unchecked")
     private static Map<String, String> hashValue(RedisObject object) {
         return (Map<String, String>) object.value();
+    }
+
+    private static SortedSetValue sortedSetValue(RedisObject object) {
+        return (SortedSetValue) object.value();
+    }
+
+    private static double parseScore(String value, String key) {
+        try {
+            double score = Double.parseDouble(value);
+            if (Double.isNaN(score)) throw new NumberFormatException();
+            return score;
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException("invalid score '" + value + "' for key '" + key + "'");
+        }
     }
 
     private static int normalizeIndex(int index, int size) {

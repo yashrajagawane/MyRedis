@@ -31,6 +31,11 @@ public final class CommandRegistry {
         register("HDEL", HdelCommand::new);
         register("HGETALL", HgetallCommand::new);
         register("HEXISTS", HexistsCommand::new);
+        register("ZADD", ZaddCommand::new);
+        register("ZRANGE", ZrangeCommand::new);
+        register("ZSCORE", ZscoreCommand::new);
+        register("ZREM", ZremCommand::new);
+        register("ZRANK", ZrankCommand::new);
     }
 
     public void register(String name, Supplier<Command> factory) {

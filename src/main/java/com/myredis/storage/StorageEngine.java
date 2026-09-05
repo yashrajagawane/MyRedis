@@ -43,4 +43,14 @@ public interface StorageEngine {
     List<String> getAllHashFields(String key);
 
     boolean hasHashField(String key, String field);
+
+    int addSortedSetMembers(String key, List<String> scoreMembers);
+
+    List<String> sortedSetRange(String key, int start, int stop);
+
+    Optional<Double> sortedSetScore(String key, String member);
+
+    int removeSortedSetMembers(String key, List<String> members);
+
+    Optional<Integer> sortedSetRank(String key, String member);
 }

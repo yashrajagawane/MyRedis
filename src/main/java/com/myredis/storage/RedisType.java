@@ -4,5 +4,6 @@ public enum RedisType {
     STRING,
     LIST,
     SET,
-    HASH
+    HASH,
+    ZSET
 }
