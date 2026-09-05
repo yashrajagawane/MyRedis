@@ -1,5 +1,7 @@
 package com.myredis.server;
 
+import com.myredis.command.CommandParser;
+import com.myredis.command.CommandRegistry;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -16,6 +18,7 @@ public final class MyRedisServer {
     private final int port;
     private final AtomicBoolean running = new AtomicBoolean();
     private final Set<Socket> clientSockets = ConcurrentHashMap.newKeySet();
+    private final CommandParser commandParser = new CommandParser(new CommandRegistry());
     private volatile ServerSocket serverSocket;
 
     public MyRedisServer(int port) {
@@ -37,7 +40,7 @@ public final class MyRedisServer {
                 try {
                     Socket client = socket.accept();
                     clientSockets.add(client);
-                    Thread.startVirtualThread(new ClientHandler(client, clientSockets));
+                    Thread.startVirtualThread(new ClientHandler(client, clientSockets, commandParser));
                     LOGGER.info("Client connected from {}", client.getRemoteSocketAddress());
                 } catch (IOException exception) {
                     if (running.get()) {

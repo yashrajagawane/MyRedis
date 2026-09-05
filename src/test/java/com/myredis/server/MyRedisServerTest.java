@@ -18,7 +18,7 @@ class MyRedisServerTest {
         MyRedisServer server = new MyRedisServer(0);
         CompletableFuture<Void> serverTask = CompletableFuture.runAsync(() -> {
             try {
-                server.start();
+                    server.start();
             } catch (Exception exception) {
                 throw new RuntimeException(exception);
             }
@@ -33,9 +33,9 @@ class MyRedisServerTest {
                      new OutputStreamWriter(client.getOutputStream(), StandardCharsets.UTF_8));
              BufferedReader reader = new BufferedReader(
                      new InputStreamReader(client.getInputStream(), StandardCharsets.UTF_8))) {
-            writer.write("hello\r\n");
+            writer.write("PING\r\n");
             writer.flush();
-            assertEquals("OK hello", reader.readLine());
+            assertEquals("PONG", reader.readLine());
         } finally {
             server.stop();
         }

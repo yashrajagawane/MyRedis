@@ -1,5 +1,7 @@
 package com.myredis.server;
 
+import com.myredis.command.CommandParseException;
+import com.myredis.command.CommandParser;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -17,10 +19,12 @@ public final class ClientHandler implements Runnable {
 
     private final Socket socket;
     private final Set<Socket> activeSockets;
+    private final CommandParser commandParser;
 
-    public ClientHandler(Socket socket, Set<Socket> activeSockets) {
+    public ClientHandler(Socket socket, Set<Socket> activeSockets, CommandParser commandParser) {
         this.socket = socket;
         this.activeSockets = activeSockets;
+        this.commandParser = commandParser;
     }
 
     @Override
@@ -32,7 +36,13 @@ public final class ClientHandler implements Runnable {
                      new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8))) {
             String input;
             while ((input = reader.readLine()) != null) {
-                writer.write("OK " + input);
+                String response;
+                try {
+                    response = commandParser.parse(input).execute().response();
+                } catch (CommandParseException exception) {
+                    response = "-ERR " + exception.getMessage();
+                }
+                writer.write(response);
                 writer.write("\r\n");
                 writer.flush();
             }
