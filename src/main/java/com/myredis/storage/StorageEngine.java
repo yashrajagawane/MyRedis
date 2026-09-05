@@ -33,4 +33,14 @@ public interface StorageEngine {
     boolean isSetMember(String key, String member);
 
     int setCardinality(String key);
+
+    int putHashFields(String key, List<String> fieldValues);
+
+    Optional<String> getHashField(String key, String field);
+
+    int removeHashFields(String key, List<String> fields);
+
+    List<String> getAllHashFields(String key);
+
+    boolean hasHashField(String key, String field);
 }

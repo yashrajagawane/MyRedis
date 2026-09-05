@@ -69,6 +69,16 @@ class CommandParserTest {
     }
 
     @Test
+    void supportsHashCommands() {
+        assertEquals("2", parser.parse("HSET user name Yash city Pune").execute().response());
+        assertEquals("Yash", parser.parse("HGET user name").execute().response());
+        assertEquals("1", parser.parse("HEXISTS user city").execute().response());
+        assertEquals("city Pune name Yash", parser.parse("HGETALL user").execute().response());
+        assertEquals("1", parser.parse("HDEL user city").execute().response());
+        assertEquals("(nil)", parser.parse("HGET user city").execute().response());
+    }
+
+    @Test
     void rejectsBlankAndUnknownCommands() {
         assertThrows(CommandParseException.class, () -> parser.parse("  "));
         assertThrows(CommandParseException.class, () -> parser.parse("NOPE"));

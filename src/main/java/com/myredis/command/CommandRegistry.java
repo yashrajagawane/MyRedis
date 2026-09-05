@@ -26,6 +26,11 @@ public final class CommandRegistry {
         register("SMEMBERS", SmembersCommand::new);
         register("SISMEMBER", SismemberCommand::new);
         register("SCARD", ScardCommand::new);
+        register("HSET", HsetCommand::new);
+        register("HGET", HgetCommand::new);
+        register("HDEL", HdelCommand::new);
+        register("HGETALL", HgetallCommand::new);
+        register("HEXISTS", HexistsCommand::new);
     }
 
     public void register(String name, Supplier<Command> factory) {

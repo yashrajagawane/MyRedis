@@ -8,6 +8,7 @@ import java.util.Deque;
 import java.util.List;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 /** Thread-safe String storage for concurrent Phase 4 clients. */
@@ -184,6 +185,74 @@ public final class InMemoryStorageEngine implements StorageEngine {
         }
     }
 
+    @Override
+    public int putHashFields(String key, List<String> fieldValues) {
+        requireKey(key);
+        RedisObject object = values.computeIfAbsent(key,
+                ignored -> new RedisObject(RedisType.HASH, new HashMap<String, String>()));
+        requireType(key, object, RedisType.HASH);
+        synchronized (object) {
+            Map<String, String> hash = hashValue(object);
+            int added = 0;
+            for (int index = 0; index < fieldValues.size(); index += 2) {
+                if (!hash.containsKey(fieldValues.get(index))) {
+                    added++;
+                }
+                hash.put(fieldValues.get(index), fieldValues.get(index + 1));
+            }
+            return added;
+        }
+    }
+
+    @Override
+    public Optional<String> getHashField(String key, String field) {
+        RedisObject object = values.get(key);
+        if (object == null) return Optional.empty();
+        requireType(key, object, RedisType.HASH);
+        synchronized (object) {
+            return Optional.ofNullable(hashValue(object).get(field));
+        }
+    }
+
+    @Override
+    public int removeHashFields(String key, List<String> fields) {
+        RedisObject object = values.get(key);
+        if (object == null) return 0;
+        requireType(key, object, RedisType.HASH);
+        synchronized (object) {
+            Map<String, String> hash = hashValue(object);
+            int removed = 0;
+            for (String field : fields) {
+                if (hash.remove(field) != null) removed++;
+            }
+            if (hash.isEmpty()) values.remove(key, object);
+            return removed;
+        }
+    }
+
+    @Override
+    public List<String> getAllHashFields(String key) {
+        RedisObject object = values.get(key);
+        if (object == null) return List.of();
+        requireType(key, object, RedisType.HASH);
+        synchronized (object) {
+            return hashValue(object).entrySet().stream()
+                    .sorted(Map.Entry.comparingByKey())
+                    .flatMap(entry -> java.util.stream.Stream.of(entry.getKey(), entry.getValue()))
+                    .toList();
+        }
+    }
+
+    @Override
+    public boolean hasHashField(String key, String field) {
+        RedisObject object = values.get(key);
+        if (object == null) return false;
+        requireType(key, object, RedisType.HASH);
+        synchronized (object) {
+            return hashValue(object).containsKey(field);
+        }
+    }
+
     private Optional<String> pop(String key, boolean left) {
         RedisObject object = values.get(key);
         if (object == null) {
@@ -208,6 +277,11 @@ public final class InMemoryStorageEngine implements StorageEngine {
     @SuppressWarnings("unchecked")
     private static Set<String> setValue(RedisObject object) {
         return (Set<String>) object.value();
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, String> hashValue(RedisObject object) {
+        return (Map<String, String>) object.value();
     }
 
     private static int normalizeIndex(int index, int size) {
