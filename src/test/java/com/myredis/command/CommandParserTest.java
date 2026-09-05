@@ -89,6 +89,16 @@ class CommandParserTest {
     }
 
     @Test
+    void supportsExpirationCommandsAndSetOptions() throws Exception {
+        assertEquals("OK", parser.parse("SET temporary value PX 1000").execute().response());
+        assertEquals("1", parser.parse("TTL temporary").execute().response());
+        assertEquals("1", parser.parse("PERSIST temporary").execute().response());
+        assertEquals("-1", parser.parse("TTL temporary").execute().response());
+        assertEquals("1", parser.parse("EXPIRE temporary 1").execute().response());
+        assertEquals("1", parser.parse("PERSIST temporary").execute().response());
+    }
+
+    @Test
     void rejectsBlankAndUnknownCommands() {
         assertThrows(CommandParseException.class, () -> parser.parse("  "));
         assertThrows(CommandParseException.class, () -> parser.parse("NOPE"));

@@ -1,5 +1,6 @@
 package com.myredis.storage;
 
+import com.myredis.expiration.ExpirationManager;
 import java.util.Map;
 import java.util.Optional;
 import java.util.ArrayDeque;
@@ -14,15 +15,30 @@ import java.util.concurrent.ConcurrentHashMap;
 /** Thread-safe String storage for concurrent Phase 4 clients. */
 public final class InMemoryStorageEngine implements StorageEngine {
     private final Map<String, RedisObject> values = new ConcurrentHashMap<>();
+    private final ExpirationManager expiration;
+
+    public InMemoryStorageEngine() {
+        this(new ExpirationManager());
+    }
+
+    public InMemoryStorageEngine(ExpirationManager expiration) {
+        this.expiration = expiration;
+    }
+
+    public ExpirationManager expirationManager() {
+        return expiration;
+    }
 
     @Override
     public void setString(String key, String value) {
         requireKey(key);
         values.put(key, new RedisObject(RedisType.STRING, value));
+        expiration.removeExpiry(key);
     }
 
     @Override
     public Optional<String> getString(String key) {
+        removeIfExpired(key);
         RedisObject object = values.get(key);
         if (object == null) {
             return Optional.empty();
@@ -33,17 +49,21 @@ public final class InMemoryStorageEngine implements StorageEngine {
 
     @Override
     public boolean delete(String key) {
-        return values.remove(key) != null;
+        boolean removed = values.remove(key) != null;
+        if (removed) expiration.removeExpiry(key);
+        return removed;
     }
 
     @Override
     public boolean exists(String key) {
+        removeIfExpired(key);
         return values.containsKey(key);
     }
 
     @Override
     public int pushLeft(String key, List<String> elements) {
         requireKey(key);
+        removeIfExpired(key);
         RedisObject object = values.computeIfAbsent(key,
                 ignored -> new RedisObject(RedisType.LIST, new ArrayDeque<String>()));
         requireType(key, object, RedisType.LIST);
@@ -57,6 +77,7 @@ public final class InMemoryStorageEngine implements StorageEngine {
     @Override
     public int pushRight(String key, List<String> elements) {
         requireKey(key);
+        removeIfExpired(key);
         RedisObject object = values.computeIfAbsent(key,
                 ignored -> new RedisObject(RedisType.LIST, new ArrayDeque<String>()));
         requireType(key, object, RedisType.LIST);
@@ -69,16 +90,19 @@ public final class InMemoryStorageEngine implements StorageEngine {
 
     @Override
     public Optional<String> popLeft(String key) {
+        removeIfExpired(key);
         return pop(key, true);
     }
 
     @Override
     public Optional<String> popRight(String key) {
+        removeIfExpired(key);
         return pop(key, false);
     }
 
     @Override
     public List<String> range(String key, int start, int stop) {
+        removeIfExpired(key);
         RedisObject object = values.get(key);
         if (object == null) {
             return List.of();
@@ -99,6 +123,7 @@ public final class InMemoryStorageEngine implements StorageEngine {
 
     @Override
     public int listLength(String key) {
+        removeIfExpired(key);
         RedisObject object = values.get(key);
         if (object == null) {
             return 0;
@@ -112,6 +137,7 @@ public final class InMemoryStorageEngine implements StorageEngine {
     @Override
     public int addSet(String key, List<String> members) {
         requireKey(key);
+        removeIfExpired(key);
         RedisObject object = values.computeIfAbsent(key,
                 ignored -> new RedisObject(RedisType.SET, new HashSet<String>()));
         requireType(key, object, RedisType.SET);
@@ -129,6 +155,7 @@ public final class InMemoryStorageEngine implements StorageEngine {
 
     @Override
     public int removeSet(String key, List<String> members) {
+        removeIfExpired(key);
         RedisObject object = values.get(key);
         if (object == null) {
             return 0;
@@ -151,6 +178,7 @@ public final class InMemoryStorageEngine implements StorageEngine {
 
     @Override
     public List<String> setMembers(String key) {
+        removeIfExpired(key);
         RedisObject object = values.get(key);
         if (object == null) {
             return List.of();
@@ -163,6 +191,7 @@ public final class InMemoryStorageEngine implements StorageEngine {
 
     @Override
     public boolean isSetMember(String key, String member) {
+        removeIfExpired(key);
         RedisObject object = values.get(key);
         if (object == null) {
             return false;
@@ -175,6 +204,7 @@ public final class InMemoryStorageEngine implements StorageEngine {
 
     @Override
     public int setCardinality(String key) {
+        removeIfExpired(key);
         RedisObject object = values.get(key);
         if (object == null) {
             return 0;
@@ -188,6 +218,7 @@ public final class InMemoryStorageEngine implements StorageEngine {
     @Override
     public int putHashFields(String key, List<String> fieldValues) {
         requireKey(key);
+        removeIfExpired(key);
         RedisObject object = values.computeIfAbsent(key,
                 ignored -> new RedisObject(RedisType.HASH, new HashMap<String, String>()));
         requireType(key, object, RedisType.HASH);
@@ -206,6 +237,7 @@ public final class InMemoryStorageEngine implements StorageEngine {
 
     @Override
     public Optional<String> getHashField(String key, String field) {
+        removeIfExpired(key);
         RedisObject object = values.get(key);
         if (object == null) return Optional.empty();
         requireType(key, object, RedisType.HASH);
@@ -216,6 +248,7 @@ public final class InMemoryStorageEngine implements StorageEngine {
 
     @Override
     public int removeHashFields(String key, List<String> fields) {
+        removeIfExpired(key);
         RedisObject object = values.get(key);
         if (object == null) return 0;
         requireType(key, object, RedisType.HASH);
@@ -232,6 +265,7 @@ public final class InMemoryStorageEngine implements StorageEngine {
 
     @Override
     public List<String> getAllHashFields(String key) {
+        removeIfExpired(key);
         RedisObject object = values.get(key);
         if (object == null) return List.of();
         requireType(key, object, RedisType.HASH);
@@ -245,6 +279,7 @@ public final class InMemoryStorageEngine implements StorageEngine {
 
     @Override
     public boolean hasHashField(String key, String field) {
+        removeIfExpired(key);
         RedisObject object = values.get(key);
         if (object == null) return false;
         requireType(key, object, RedisType.HASH);
@@ -256,6 +291,7 @@ public final class InMemoryStorageEngine implements StorageEngine {
     @Override
     public int addSortedSetMembers(String key, List<String> scoreMembers) {
         requireKey(key);
+        removeIfExpired(key);
         RedisObject object = values.computeIfAbsent(key,
                 ignored -> new RedisObject(RedisType.ZSET, new SortedSetValue()));
         requireType(key, object, RedisType.ZSET);
@@ -274,6 +310,7 @@ public final class InMemoryStorageEngine implements StorageEngine {
 
     @Override
     public List<String> sortedSetRange(String key, int start, int stop) {
+        removeIfExpired(key);
         RedisObject object = values.get(key);
         if (object == null) return List.of();
         requireType(key, object, RedisType.ZSET);
@@ -291,6 +328,7 @@ public final class InMemoryStorageEngine implements StorageEngine {
 
     @Override
     public Optional<Double> sortedSetScore(String key, String member) {
+        removeIfExpired(key);
         RedisObject object = values.get(key);
         if (object == null) return Optional.empty();
         requireType(key, object, RedisType.ZSET);
@@ -301,6 +339,7 @@ public final class InMemoryStorageEngine implements StorageEngine {
 
     @Override
     public int removeSortedSetMembers(String key, List<String> members) {
+        removeIfExpired(key);
         RedisObject object = values.get(key);
         if (object == null) return 0;
         requireType(key, object, RedisType.ZSET);
@@ -321,6 +360,7 @@ public final class InMemoryStorageEngine implements StorageEngine {
 
     @Override
     public Optional<Integer> sortedSetRank(String key, String member) {
+        removeIfExpired(key);
         RedisObject object = values.get(key);
         if (object == null) return Optional.empty();
         requireType(key, object, RedisType.ZSET);
@@ -381,6 +421,14 @@ public final class InMemoryStorageEngine implements StorageEngine {
 
     private static int normalizeIndex(int index, int size) {
         return index < 0 ? size + index : index;
+    }
+
+    @Override
+    public boolean removeIfExpired(String key) {
+        if (!expiration.isExpired(key)) return false;
+        boolean removed = values.remove(key) != null;
+        expiration.removeExpiry(key);
+        return removed;
     }
 
     private static void requireKey(String key) {

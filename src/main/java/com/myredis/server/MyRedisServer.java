@@ -2,6 +2,8 @@ package com.myredis.server;
 
 import com.myredis.command.CommandParser;
 import com.myredis.command.CommandRegistry;
+import com.myredis.expiration.ExpirationManager;
+import com.myredis.expiration.ExpirationScheduler;
 import com.myredis.storage.InMemoryStorageEngine;
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -20,8 +22,11 @@ public final class MyRedisServer {
     private final AtomicBoolean running = new AtomicBoolean();
     private final ConnectionRegistry connectionRegistry = new ConnectionRegistry();
     private final ExecutorService clientExecutor = Executors.newVirtualThreadPerTaskExecutor();
+    private final ExpirationManager expiration = new ExpirationManager();
+    private final InMemoryStorageEngine storage = new InMemoryStorageEngine(expiration);
     private final CommandParser commandParser = new CommandParser(
-            new CommandRegistry(), new InMemoryStorageEngine());
+            new CommandRegistry(), storage, expiration);
+    private final ExpirationScheduler expirationScheduler = new ExpirationScheduler(expiration, storage);
     private volatile ServerSocket serverSocket;
 
     public MyRedisServer(int port) {
@@ -56,6 +61,7 @@ public final class MyRedisServer {
             running.set(false);
             connectionRegistry.closeAll();
             clientExecutor.shutdownNow();
+            expirationScheduler.close();
             LOGGER.info("MyRedis stopped");
         }
     }
@@ -74,6 +80,7 @@ public final class MyRedisServer {
         }
         connectionRegistry.closeAll();
         clientExecutor.shutdownNow();
+        expirationScheduler.close();
     }
 
     public int getPort() {

@@ -36,6 +36,9 @@ public final class CommandRegistry {
         register("ZSCORE", ZscoreCommand::new);
         register("ZREM", ZremCommand::new);
         register("ZRANK", ZrankCommand::new);
+        register("EXPIRE", ExpireCommand::new);
+        register("TTL", TtlCommand::new);
+        register("PERSIST", PersistCommand::new);
     }
 
     public void register(String name, Supplier<Command> factory) {

@@ -53,4 +53,6 @@ public interface StorageEngine {
     int removeSortedSetMembers(String key, List<String> members);
 
     Optional<Integer> sortedSetRank(String key, String member);
+
+    boolean removeIfExpired(String key);
 }
