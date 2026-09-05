@@ -4,9 +4,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.jupiter.api.Test;
+import com.myredis.storage.InMemoryStorageEngine;
 
 class CommandParserTest {
-    private final CommandParser parser = new CommandParser(new CommandRegistry());
+    private final CommandParser parser = new CommandParser(
+            new CommandRegistry(), new InMemoryStorageEngine());
 
     @Test
     void parsesCommandCaseInsensitively() {
@@ -33,6 +35,15 @@ class CommandParserTest {
         assertEquals("(nil)", parser.parse("GET key").execute().response());
         assertEquals("0", parser.parse("EXISTS key").execute().response());
         assertEquals("0", parser.parse("DEL key").execute().response());
+    }
+
+    @Test
+    void storesAndReadsValuesThroughCommands() {
+        assertEquals("OK", parser.parse("SET key value").execute().response());
+        assertEquals("value", parser.parse("GET key").execute().response());
+        assertEquals("1", parser.parse("EXISTS key").execute().response());
+        assertEquals("1", parser.parse("DEL key").execute().response());
+        assertEquals("(nil)", parser.parse("GET key").execute().response());
     }
 
     @Test

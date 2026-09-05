@@ -6,6 +6,7 @@ public final class GetCommand implements Command {
         if (context.arguments().size() != 1) {
             return CommandResult.error("wrong number of arguments for 'get' command");
         }
-        return new CommandResult("(nil)");
+        return new CommandResult(context.storage().getString(context.arguments().getFirst())
+                .orElse("(nil)"));
     }
 }

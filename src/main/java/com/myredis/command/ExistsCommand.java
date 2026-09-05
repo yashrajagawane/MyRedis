@@ -6,6 +6,9 @@ public final class ExistsCommand implements Command {
         if (context.arguments().isEmpty()) {
             return CommandResult.error("wrong number of arguments for 'exists' command");
         }
-        return new CommandResult("0");
+        long existing = context.arguments().stream()
+                .filter(context.storage()::exists)
+                .count();
+        return new CommandResult(Long.toString(existing));
     }
 }

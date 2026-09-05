@@ -6,6 +6,9 @@ public final class DelCommand implements Command {
         if (context.arguments().isEmpty()) {
             return CommandResult.error("wrong number of arguments for 'del' command");
         }
-        return new CommandResult("0");
+        long deleted = context.arguments().stream()
+                .filter(context.storage()::delete)
+                .count();
+        return new CommandResult(Long.toString(deleted));
     }
 }

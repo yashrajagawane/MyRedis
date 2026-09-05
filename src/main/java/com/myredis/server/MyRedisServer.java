@@ -2,6 +2,7 @@ package com.myredis.server;
 
 import com.myredis.command.CommandParser;
 import com.myredis.command.CommandRegistry;
+import com.myredis.storage.InMemoryStorageEngine;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -18,7 +19,8 @@ public final class MyRedisServer {
     private final int port;
     private final AtomicBoolean running = new AtomicBoolean();
     private final Set<Socket> clientSockets = ConcurrentHashMap.newKeySet();
-    private final CommandParser commandParser = new CommandParser(new CommandRegistry());
+    private final CommandParser commandParser = new CommandParser(
+            new CommandRegistry(), new InMemoryStorageEngine());
     private volatile ServerSocket serverSocket;
 
     public MyRedisServer(int port) {
