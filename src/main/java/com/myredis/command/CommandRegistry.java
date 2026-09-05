@@ -15,6 +15,12 @@ public final class CommandRegistry {
         register("GET", GetCommand::new);
         register("DEL", DelCommand::new);
         register("EXISTS", ExistsCommand::new);
+        register("LPUSH", LpushCommand::new);
+        register("RPUSH", RpushCommand::new);
+        register("LPOP", LpopCommand::new);
+        register("RPOP", RpopCommand::new);
+        register("LRANGE", LrangeCommand::new);
+        register("LLEN", LlenCommand::new);
     }
 
     public void register(String name, Supplier<Command> factory) {

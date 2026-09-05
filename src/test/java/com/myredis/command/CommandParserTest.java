@@ -47,6 +47,17 @@ class CommandParserTest {
     }
 
     @Test
+    void supportsListCommands() {
+        assertEquals("2", parser.parse("LPUSH list one two").execute().response());
+        assertEquals("3", parser.parse("RPUSH list three").execute().response());
+        assertEquals("one two three", parser.parse("LRANGE list 0 -1").execute().response());
+        assertEquals("3", parser.parse("LLEN list").execute().response());
+        assertEquals("one", parser.parse("LPOP list").execute().response());
+        assertEquals("three", parser.parse("RPOP list").execute().response());
+        assertEquals("two", parser.parse("LRANGE list 0 -1").execute().response());
+    }
+
+    @Test
     void rejectsBlankAndUnknownCommands() {
         assertThrows(CommandParseException.class, () -> parser.parse("  "));
         assertThrows(CommandParseException.class, () -> parser.parse("NOPE"));
