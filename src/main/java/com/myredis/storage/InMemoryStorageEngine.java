@@ -1,12 +1,12 @@
 package com.myredis.storage;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
-/** Single-threaded Phase 3 storage; concurrency is introduced in Phase 4. */
+/** Thread-safe String storage for concurrent Phase 4 clients. */
 public final class InMemoryStorageEngine implements StorageEngine {
-    private final Map<String, RedisObject> values = new HashMap<>();
+    private final Map<String, RedisObject> values = new ConcurrentHashMap<>();
 
     @Override
     public void setString(String key, String value) {

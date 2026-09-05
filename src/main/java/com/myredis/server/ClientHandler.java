@@ -9,7 +9,6 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
-import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,12 +17,12 @@ public final class ClientHandler implements Runnable {
     private static final Logger LOGGER = LoggerFactory.getLogger(ClientHandler.class);
 
     private final Socket socket;
-    private final Set<Socket> activeSockets;
+    private final ConnectionRegistry connectionRegistry;
     private final CommandParser commandParser;
 
-    public ClientHandler(Socket socket, Set<Socket> activeSockets, CommandParser commandParser) {
+    public ClientHandler(Socket socket, ConnectionRegistry connectionRegistry, CommandParser commandParser) {
         this.socket = socket;
-        this.activeSockets = activeSockets;
+        this.connectionRegistry = connectionRegistry;
         this.commandParser = commandParser;
     }
 
@@ -49,7 +48,7 @@ public final class ClientHandler implements Runnable {
         } catch (IOException exception) {
             LOGGER.debug("Client connection closed with an I/O error", exception);
         } finally {
-            activeSockets.remove(socket);
+            connectionRegistry.unregister(socket);
             LOGGER.info("Client disconnected");
         }
     }

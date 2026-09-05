@@ -6,8 +6,8 @@ import com.myredis.storage.InMemoryStorageEngine;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,7 +18,8 @@ public final class MyRedisServer {
 
     private final int port;
     private final AtomicBoolean running = new AtomicBoolean();
-    private final Set<Socket> clientSockets = ConcurrentHashMap.newKeySet();
+    private final ConnectionRegistry connectionRegistry = new ConnectionRegistry();
+    private final ExecutorService clientExecutor = Executors.newVirtualThreadPerTaskExecutor();
     private final CommandParser commandParser = new CommandParser(
             new CommandRegistry(), new InMemoryStorageEngine());
     private volatile ServerSocket serverSocket;
@@ -41,8 +42,8 @@ public final class MyRedisServer {
             while (running.get()) {
                 try {
                     Socket client = socket.accept();
-                    clientSockets.add(client);
-                    Thread.startVirtualThread(new ClientHandler(client, clientSockets, commandParser));
+                    connectionRegistry.register(client);
+                    clientExecutor.submit(new ClientHandler(client, connectionRegistry, commandParser));
                     LOGGER.info("Client connected from {}", client.getRemoteSocketAddress());
                 } catch (IOException exception) {
                     if (running.get()) {
@@ -53,7 +54,8 @@ public final class MyRedisServer {
         } finally {
             serverSocket = null;
             running.set(false);
-            closeClients();
+            connectionRegistry.closeAll();
+            clientExecutor.shutdownNow();
             LOGGER.info("MyRedis stopped");
         }
     }
@@ -70,7 +72,8 @@ public final class MyRedisServer {
                 LOGGER.warn("Could not close server socket cleanly", exception);
             }
         }
-        closeClients();
+        connectionRegistry.closeAll();
+        clientExecutor.shutdownNow();
     }
 
     public int getPort() {
@@ -78,14 +81,4 @@ public final class MyRedisServer {
         return socket == null ? port : socket.getLocalPort();
     }
 
-    private void closeClients() {
-        for (Socket client : clientSockets) {
-            try {
-                client.close();
-            } catch (IOException exception) {
-                LOGGER.debug("Could not close client socket", exception);
-            }
-        }
-        clientSockets.clear();
-    }
 }

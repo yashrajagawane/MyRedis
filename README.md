@@ -4,7 +4,7 @@ MyRedis is a learning-first Redis-inspired in-memory database built from scratch
 
 ## Current status
 
-Phase 3 is implemented: a blocking TCP server listens on port `6379`, accepts clients on virtual threads, parses line-based commands, and stores String values in an in-memory engine. Concurrency and additional Redis data types are reserved for later phases.
+Phase 4 is implemented: a blocking TCP server accepts concurrent clients through Java 21 virtual threads, tracks active connections for graceful shutdown, and stores String values in a thread-safe in-memory engine. Additional Redis data types are reserved for later phases.
 
 ## Run
 
