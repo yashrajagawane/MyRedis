@@ -7,6 +7,6 @@ public final class HgetallCommand implements Command {
             return CommandResult.error("wrong number of arguments for 'hgetall' command");
         }
         var fields = context.storage().getAllHashFields(context.arguments().getFirst());
-        return new CommandResult(fields.isEmpty() ? "(nil)" : String.join(" ", fields));
+        return CommandResult.array(fields);
     }
 }

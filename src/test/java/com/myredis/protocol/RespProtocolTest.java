@@ -28,6 +28,9 @@ class RespProtocolTest {
                 encoder.encode(new CommandResult("value"), "GET"), StandardCharsets.UTF_8));
         assertEquals("*2\r\n$1\r\na\r\n$1\r\nb\r\n", new String(
                 encoder.encode(new CommandResult("a b"), "LRANGE"), StandardCharsets.UTF_8));
+        assertEquals("*2\r\n$11\r\nhello world\r\n$0\r\n\r\n", new String(
+                encoder.encode(CommandResult.array(List.of("hello world", "")), "LRANGE"),
+                StandardCharsets.UTF_8));
     }
 
     @Test

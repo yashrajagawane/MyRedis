@@ -7,6 +7,6 @@ public final class SmembersCommand implements Command {
             return CommandResult.error("wrong number of arguments for 'smembers' command");
         }
         var members = context.storage().setMembers(context.arguments().getFirst());
-        return new CommandResult(members.isEmpty() ? "(nil)" : String.join(" ", members));
+        return CommandResult.array(members);
     }
 }

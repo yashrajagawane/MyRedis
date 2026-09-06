@@ -14,6 +14,6 @@ public final class LrangeCommand implements Command {
             return CommandResult.error("value is not an integer or out of range");
         }
         List<String> values = context.storage().range(context.arguments().getFirst(), start, stop);
-        return new CommandResult(values.isEmpty() ? "(nil)" : String.join(" ", values));
+        return CommandResult.array(values);
     }
 }

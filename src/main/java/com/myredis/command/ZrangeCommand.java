@@ -10,7 +10,7 @@ public final class ZrangeCommand implements Command {
         Integer stop = parseIndex(context.arguments().get(2));
         if (start == null || stop == null) return CommandResult.error("value is not an integer or out of range");
         var members = context.storage().sortedSetRange(context.arguments().getFirst(), start, stop);
-        return new CommandResult(members.isEmpty() ? "(nil)" : String.join(" ", members));
+        return CommandResult.array(members);
     }
 
     private static Integer parseIndex(String value) {
