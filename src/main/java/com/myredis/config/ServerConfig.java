@@ -1,0 +1,25 @@
+package com.myredis.config;
+
+import com.myredis.persistence.FsyncPolicy;
+import java.nio.file.Path;
+
+/** Immutable runtime configuration for a MyRedis server. */
+public record ServerConfig(
+        String host,
+        int port,
+        boolean aofEnabled,
+        Path aofPath,
+        Path snapshotPath,
+        FsyncPolicy fsyncPolicy,
+        long snapshotIntervalSeconds,
+        String logLevel) {
+
+    public ServerConfig {
+        if (host == null || host.isBlank()) throw new IllegalArgumentException("host must not be blank");
+        if (port < 0 || port > 65_535) throw new IllegalArgumentException("port must be between 0 and 65535");
+        if (aofPath == null || snapshotPath == null) throw new IllegalArgumentException("persistence paths are required");
+        if (fsyncPolicy == null) throw new IllegalArgumentException("fsync policy is required");
+        if (snapshotIntervalSeconds < 0) throw new IllegalArgumentException("snapshot interval must not be negative");
+        if (logLevel == null || logLevel.isBlank()) throw new IllegalArgumentException("log level must not be blank");
+    }
+}

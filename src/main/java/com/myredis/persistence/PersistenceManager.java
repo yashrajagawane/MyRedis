@@ -25,13 +25,21 @@ public final class PersistenceManager implements AutoCloseable {
     }
 
     public PersistenceManager(Path aofPath, Path snapshotPath, InMemoryStorageEngine storage) throws IOException {
+        this(aofPath, snapshotPath, storage, FsyncPolicy.ALWAYS, 60);
+    }
+
+    public PersistenceManager(Path aofPath, Path snapshotPath, InMemoryStorageEngine storage,
+                               FsyncPolicy fsyncPolicy, long snapshotIntervalSeconds) throws IOException {
         this.enabled = true;
         this.aofPath = aofPath;
         this.snapshotPath = snapshotPath;
         this.storage = storage;
-        this.aofWriter = new AofWriter(aofPath);
+        this.aofWriter = new AofWriter(aofPath, fsyncPolicy);
         this.snapshotExecutor = Executors.newSingleThreadScheduledExecutor();
-        snapshotExecutor.scheduleAtFixedRate(this::snapshotQuietly, 60, 60, TimeUnit.SECONDS);
+        if (snapshotIntervalSeconds > 0) {
+            snapshotExecutor.scheduleAtFixedRate(this::snapshotQuietly, snapshotIntervalSeconds,
+                    snapshotIntervalSeconds, TimeUnit.SECONDS);
+        }
     }
 
     private PersistenceManager(InMemoryStorageEngine storage) {

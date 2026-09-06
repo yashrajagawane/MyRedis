@@ -9,6 +9,7 @@ import com.myredis.storage.InMemoryStorageEngine;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.InetSocketAddress;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -19,6 +20,7 @@ import org.slf4j.LoggerFactory;
 public final class MyRedisServer {
     private static final Logger LOGGER = LoggerFactory.getLogger(MyRedisServer.class);
 
+    private final String host;
     private final int port;
     private final AtomicBoolean running = new AtomicBoolean();
     private final ConnectionRegistry connectionRegistry = new ConnectionRegistry();
@@ -31,9 +33,14 @@ public final class MyRedisServer {
     private volatile ServerSocket serverSocket;
 
     public MyRedisServer(int port) {
+        this("0.0.0.0", port);
+    }
+
+    public MyRedisServer(String host, int port) {
         if (port < 0 || port > 65_535) {
             throw new IllegalArgumentException("port must be between 0 and 65535");
         }
+        this.host = host;
         this.port = port;
         this.expiration = new ExpirationManager();
         this.storage = new InMemoryStorageEngine(expiration);
@@ -44,9 +51,15 @@ public final class MyRedisServer {
 
     public MyRedisServer(int port, InMemoryStorageEngine storage, CommandParser commandParser,
                          ExpirationManager expiration, PersistenceManager persistence) {
+        this("0.0.0.0", port, storage, commandParser, expiration, persistence);
+    }
+
+    public MyRedisServer(String host, int port, InMemoryStorageEngine storage, CommandParser commandParser,
+                         ExpirationManager expiration, PersistenceManager persistence) {
         if (port < 0 || port > 65_535) {
             throw new IllegalArgumentException("port must be between 0 and 65535");
         }
+        this.host = host;
         this.port = port;
         this.storage = storage;
         this.commandParser = commandParser;
@@ -60,7 +73,8 @@ public final class MyRedisServer {
             throw new IllegalStateException("server is already running");
         }
 
-        try (ServerSocket socket = new ServerSocket(port)) {
+        try (ServerSocket socket = new ServerSocket()) {
+            socket.bind(new InetSocketAddress(host, port));
             serverSocket = socket;
             LOGGER.info("MyRedis listening on port {}", socket.getLocalPort());
             while (running.get()) {
