@@ -4,7 +4,7 @@ MyRedis is a learning-first Redis-inspired in-memory database built from scratch
 
 ## Current status
 
-Phase 8 is implemented: MyRedis supports RESP2 command arrays and replies for all implemented commands, while retaining line-based mode as a debug fallback. Persistence uses `data/myredis.aof` and `data/myredis.snapshot`.
+RESP2 support is implemented, and the repository includes JMH storage benchmarks plus a 100-client concurrent load test. Persistence uses `data/myredis.aof` and `data/myredis.snapshot`.
 
 ## Run
 
