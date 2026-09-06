@@ -2,13 +2,13 @@ package com.myredis.server;
 
 import com.myredis.command.CommandParseException;
 import com.myredis.command.CommandParser;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
+import com.myredis.protocol.ProtocolException;
+import com.myredis.protocol.RespDecoder;
+import com.myredis.protocol.RespEncoder;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,6 +19,7 @@ public final class ClientHandler implements Runnable {
     private final Socket socket;
     private final ConnectionRegistry connectionRegistry;
     private final CommandParser commandParser;
+    private final RespEncoder respEncoder = new RespEncoder();
 
     public ClientHandler(Socket socket, ConnectionRegistry connectionRegistry, CommandParser commandParser) {
         this.socket = socket;
@@ -28,22 +29,24 @@ public final class ClientHandler implements Runnable {
 
     @Override
     public void run() {
-        try (socket;
-             BufferedReader reader = new BufferedReader(
-                     new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
-             BufferedWriter writer = new BufferedWriter(
-                     new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8))) {
-            String input;
-            while ((input = reader.readLine()) != null) {
-                String response;
+        try (socket; InputStream input = socket.getInputStream(); OutputStream output = socket.getOutputStream()) {
+            RespDecoder decoder = new RespDecoder(input);
+            int firstByte;
+            while ((firstByte = decoder.readFirstByte()) >= 0) {
                 try {
-                    response = commandParser.parse(input).execute().response();
-                } catch (CommandParseException exception) {
-                    response = "-ERR " + exception.getMessage();
+                    if (firstByte == '*') {
+                        var parsed = commandParser.parse(decoder.readCommandAfterPrefix());
+                        output.write(respEncoder.encode(parsed.execute(), parsed.name()));
+                    } else {
+                        String line = decoder.readPlainLine(firstByte);
+                        var parsed = commandParser.parse(line);
+                        output.write((parsed.execute().response() + "\r\n").getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                    }
+                    output.flush();
+                } catch (CommandParseException | ProtocolException exception) {
+                    output.write(("-ERR " + exception.getMessage() + "\r\n").getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                    output.flush();
                 }
-                writer.write(response);
-                writer.write("\r\n");
-                writer.flush();
             }
         } catch (IOException exception) {
             LOGGER.debug("Client connection closed with an I/O error", exception);

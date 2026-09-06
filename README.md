@@ -4,7 +4,7 @@ MyRedis is a learning-first Redis-inspired in-memory database built from scratch
 
 ## Current status
 
-Phase 7 is implemented: MyRedis logs mutating commands to an AOF, writes versioned snapshots, and restores snapshots plus the AOF tail on startup. The default application data files are `data/myredis.aof` and `data/myredis.snapshot`.
+Phase 8 is implemented: MyRedis supports RESP2 command arrays and replies for all implemented commands, while retaining line-based mode as a debug fallback. Persistence uses `data/myredis.aof` and `data/myredis.snapshot`.
 
 ## Run
 

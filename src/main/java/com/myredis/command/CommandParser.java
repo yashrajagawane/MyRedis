@@ -39,8 +39,12 @@ public final class CommandParser {
             throw new CommandParseException("empty command");
         }
 
-        List<String> tokens = Arrays.stream(input.trim().split("\\s+"))
-                .toList();
+        List<String> tokens = Arrays.stream(input.trim().split("\\s+")).toList();
+        return parse(tokens);
+    }
+
+    public ParsedCommand parse(List<String> tokens) {
+        if (tokens == null || tokens.isEmpty()) throw new CommandParseException("empty command");
         String name = tokens.getFirst().toUpperCase();
         Command command = registry.find(name)
                 .orElseThrow(() -> new CommandParseException(
