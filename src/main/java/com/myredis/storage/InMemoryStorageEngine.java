@@ -468,8 +468,10 @@ public final class InMemoryStorageEngine implements StorageEngine {
     @Override
     public boolean removeIfExpired(String key) {
         if (!expiration.isExpired(key)) return false;
-        boolean removed = values.remove(key) != null;
-        expiration.removeExpiry(key);
+        RedisObject expiredObject = values.get(key);
+        if (expiredObject == null) return false;
+        boolean removed = values.remove(key, expiredObject);
+        if (removed) expiration.removeExpiry(key);
         return removed;
     }
 

@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.myredis.expiration.ExpirationManager;
 import org.junit.jupiter.api.Test;
 
 class InMemoryStorageEngineTest {
@@ -23,5 +24,18 @@ class InMemoryStorageEngineTest {
     @Test
     void missingStringReturnsEmpty() {
         assertTrue(storage.getString("missing").isEmpty());
+    }
+
+    @Test
+    void expiredCleanupDoesNotRemoveAReplacementWithoutExpiry() throws Exception {
+        ExpirationManager expiration = new ExpirationManager();
+        InMemoryStorageEngine expiringStorage = new InMemoryStorageEngine(expiration);
+        expiringStorage.setString("key", "old");
+        expiration.setExpiryMillis("key", 1);
+        Thread.sleep(10);
+        expiringStorage.setString("key", "new");
+
+        assertFalse(expiringStorage.removeIfExpired("key"));
+        assertEquals("new", expiringStorage.getString("key").orElseThrow());
     }
 }
