@@ -11,8 +11,10 @@ import java.util.List;
 
 public final class AofReplayer {
     public int replay(Path path, long offset, CommandParser parser) throws IOException {
+        if (offset < 0) throw new IOException("Invalid AOF replay offset");
         if (!Files.exists(path)) return 0;
         long fileSize = Files.size(path);
+        if (offset > fileSize) throw new IOException("Snapshot AOF offset exceeds AOF length");
         if (offset >= fileSize) return 0;
         int replayed = 0;
         try (RandomAccessFile file = new RandomAccessFile(path.toFile(), "rw")) {

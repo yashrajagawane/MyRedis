@@ -63,6 +63,40 @@ class PersistenceRecoveryTest {
     }
 
     @Test
+    void rejectsSnapshotWithOffsetBeyondCurrentAof() throws Exception {
+        Path directory = Files.createTempDirectory("myredis-snapshot-offset-");
+        Path aof = directory.resolve("myredis.aof");
+        Path snapshot = directory.resolve("myredis.snapshot");
+        Files.writeString(aof, "");
+        Files.writeString(snapshot, SnapshotWriter.VERSION + "\nAOF_OFFSET 10\n");
+
+        ExpirationManager expiration = new ExpirationManager();
+        InMemoryStorageEngine storage = new InMemoryStorageEngine(expiration);
+        PersistenceManager persistence = new PersistenceManager(aof, snapshot, storage);
+        CommandParser parser = new CommandParser(new CommandRegistry(), storage, expiration, persistence);
+
+        assertThrows(java.io.IOException.class, () -> persistence.recover(parser));
+        persistence.close();
+    }
+
+    @Test
+    void rejectsMalformedSnapshotOffset() throws Exception {
+        Path directory = Files.createTempDirectory("myredis-snapshot-format-");
+        Path aof = directory.resolve("myredis.aof");
+        Path snapshot = directory.resolve("myredis.snapshot");
+        Files.writeString(aof, "");
+        Files.writeString(snapshot, SnapshotWriter.VERSION + "\nAOF_OFFSET nope\n");
+
+        ExpirationManager expiration = new ExpirationManager();
+        InMemoryStorageEngine storage = new InMemoryStorageEngine(expiration);
+        PersistenceManager persistence = new PersistenceManager(aof, snapshot, storage);
+        CommandParser parser = new CommandParser(new CommandRegistry(), storage, expiration, persistence);
+
+        assertThrows(java.io.IOException.class, () -> persistence.recover(parser));
+        persistence.close();
+    }
+
+    @Test
     void restoresSnapshotAndReplaysAofTail() throws Exception {
         Path directory = Files.createTempDirectory("myredis-persistence-");
         Path aof = directory.resolve("myredis.aof");

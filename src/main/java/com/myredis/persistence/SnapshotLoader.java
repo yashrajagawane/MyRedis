@@ -13,7 +13,20 @@ public final class SnapshotLoader {
         if (lines.size() < 2 || !SnapshotWriter.VERSION.equals(lines.getFirst())) {
             throw new IOException("Unsupported snapshot format");
         }
-        long offset = Long.parseLong(lines.get(1).substring("AOF_OFFSET ".length()));
+        String offsetLine = lines.get(1);
+        String offsetPrefix = "AOF_OFFSET ";
+        if (!offsetLine.startsWith(offsetPrefix)) {
+            throw new IOException("Invalid snapshot AOF offset");
+        }
+        final long offset;
+        try {
+            offset = Long.parseLong(offsetLine.substring(offsetPrefix.length()));
+        } catch (NumberFormatException exception) {
+            throw new IOException("Invalid snapshot AOF offset", exception);
+        }
+        if (offset < 0) {
+            throw new IOException("Invalid snapshot AOF offset");
+        }
         for (String line : lines.subList(2, lines.size())) {
             if (!line.isBlank()) {
                 parser.parse(PersistenceCodec.decode(line)).executeWithoutPersistence();
