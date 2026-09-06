@@ -5,6 +5,8 @@ import com.myredis.storage.InMemoryStorageEngine;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Supplier;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -18,6 +20,7 @@ public final class PersistenceManager implements AutoCloseable {
     private final Path snapshotPath;
     private final InMemoryStorageEngine storage;
     private final ScheduledExecutorService snapshotExecutor;
+    private final ReentrantLock mutationLock = new ReentrantLock(true);
     private AofWriter aofWriter;
 
     public static PersistenceManager disabled(InMemoryStorageEngine storage) {
@@ -59,6 +62,15 @@ public final class PersistenceManager implements AutoCloseable {
         }
     }
 
+    public <T> T withMutation(Supplier<T> mutation) {
+        mutationLock.lock();
+        try {
+            return mutation.get();
+        } finally {
+            mutationLock.unlock();
+        }
+    }
+
     public void recover(CommandParser parser) throws IOException {
         if (!enabled) return;
         long offset = new SnapshotLoader().load(snapshotPath, parser);
@@ -68,7 +80,12 @@ public final class PersistenceManager implements AutoCloseable {
 
     public synchronized void snapshot() throws IOException {
         if (!enabled) return;
-        new SnapshotWriter().write(snapshotPath, storage, aofWriter.size());
+        mutationLock.lock();
+        try {
+            new SnapshotWriter().write(snapshotPath, storage, aofWriter.size());
+        } finally {
+            mutationLock.unlock();
+        }
     }
 
     @Override

@@ -19,7 +19,7 @@ public final class AofReplayer {
             if (line.isBlank()) continue;
             try {
                 List<String> arguments = PersistenceCodec.decode(line);
-                parser.parse(String.join(" ", arguments)).executeWithoutPersistence();
+                parser.parse(arguments).executeWithoutPersistence();
                 replayed++;
             } catch (IllegalArgumentException | CommandParseException exception) {
                 throw new IOException("Could not replay AOF command", exception);

@@ -22,7 +22,7 @@ Runtime defaults are in [myredis.conf](myredis.conf). Configuration is applied i
 java -jar target/myredis-0.1.0-SNAPSHOT.jar --port 6380 --aof-fsync EVERY_SECOND
 ```
 
-Supported settings include `host`, `port`, `aof.enabled`, `aof.path`, `aof.fsync`, `snapshot.path`, `snapshot.interval.seconds`, and `log.level`.
+Supported settings include `host`, `port`, `aof.enabled`, `aof.path`, `aof.fsync`, `snapshot.path`, `snapshot.interval.seconds`, `log.level`, `limits.max.value.bytes`, and `limits.max.array.elements`.
 
 ## Docker
 

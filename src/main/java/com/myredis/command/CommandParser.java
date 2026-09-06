@@ -65,14 +65,22 @@ public final class CommandParser {
         }
 
         public CommandResult execute() {
-            CommandResult result = command.execute(new CommandContext(arguments, storage, expiration, persistence));
-            if (!result.response().startsWith("-ERR") && isMutating(name)) {
-                persistence.record(java.util.stream.Stream.concat(java.util.stream.Stream.of(name), arguments.stream()).toList());
-            }
-            return result;
+            if (!isMutating(name)) return executeCommand();
+            return persistence.withMutation(() -> {
+                CommandResult result = executeCommand();
+                if (!result.response().startsWith("-ERR")) {
+                    persistence.record(java.util.stream.Stream.concat(
+                            java.util.stream.Stream.of(name), arguments.stream()).toList());
+                }
+                return result;
+            });
         }
 
         public CommandResult executeWithoutPersistence() {
+            return executeCommand();
+        }
+
+        private CommandResult executeCommand() {
             return command.execute(new CommandContext(arguments, storage, expiration, persistence));
         }
 

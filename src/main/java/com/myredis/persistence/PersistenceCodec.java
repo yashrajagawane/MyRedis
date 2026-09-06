@@ -15,7 +15,8 @@ final class PersistenceCodec {
     }
 
     static List<String> decode(String line) {
-        return java.util.Arrays.stream(line.trim().split("\\s+"))
+        if (line.isEmpty()) return List.of();
+        return java.util.Arrays.stream(line.split(" ", -1))
                 .map(value -> new String(Base64.getDecoder().decode(value), StandardCharsets.UTF_8))
                 .toList();
     }

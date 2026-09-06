@@ -18,6 +18,8 @@ class ConfigLoaderTest {
         assertEquals(6381, loaded.port());
         assertFalse(loaded.aofEnabled());
         assertEquals(FsyncPolicy.NEVER, loaded.fsyncPolicy());
+        assertEquals(16_777_216, loaded.maxValueBytes());
+        assertEquals(1_024, loaded.maxArrayElements());
         Files.deleteIfExists(config);
     }
 }

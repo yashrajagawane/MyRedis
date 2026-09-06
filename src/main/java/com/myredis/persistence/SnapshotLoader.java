@@ -16,7 +16,7 @@ public final class SnapshotLoader {
         long offset = Long.parseLong(lines.get(1).substring("AOF_OFFSET ".length()));
         for (String line : lines.subList(2, lines.size())) {
             if (!line.isBlank()) {
-                parser.parse(String.join(" ", PersistenceCodec.decode(line))).executeWithoutPersistence();
+                parser.parse(PersistenceCodec.decode(line)).executeWithoutPersistence();
             }
         }
         return offset;

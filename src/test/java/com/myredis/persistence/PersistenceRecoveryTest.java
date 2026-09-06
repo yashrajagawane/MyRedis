@@ -52,4 +52,32 @@ class PersistenceRecoveryTest {
         writer.close();
         recovered.close();
     }
+
+    @Test
+    void preservesSpacesAndEmptyValuesDuringRecovery() throws Exception {
+        Path directory = Files.createTempDirectory("myredis-argument-recovery-");
+        Path aof = directory.resolve("myredis.aof");
+        Path snapshot = directory.resolve("myredis.snapshot");
+
+        ExpirationManager expiration = new ExpirationManager();
+        InMemoryStorageEngine storage = new InMemoryStorageEngine(expiration);
+        PersistenceManager writer = new PersistenceManager(aof, snapshot, storage);
+        CommandParser parser = new CommandParser(new CommandRegistry(), storage, expiration, writer);
+        parser.parse(java.util.List.of("SET", "spaced", "hello world")).execute();
+        parser.parse(java.util.List.of("SET", "empty", "")).execute();
+        writer.snapshot();
+        writer.close();
+
+        ExpirationManager recoveredExpiration = new ExpirationManager();
+        InMemoryStorageEngine recoveredStorage = new InMemoryStorageEngine(recoveredExpiration);
+        PersistenceManager recovered = new PersistenceManager(aof, snapshot, recoveredStorage);
+        CommandParser recoveredParser = new CommandParser(
+                new CommandRegistry(), recoveredStorage, recoveredExpiration, recovered);
+        recovered.recover(recoveredParser);
+
+        assertEquals("hello world", recoveredParser.parse("GET spaced").executeWithoutPersistence().response());
+        assertEquals("", recoveredParser.parse(java.util.List.of("GET", "empty"))
+                .executeWithoutPersistence().response());
+        recovered.close();
+    }
 }

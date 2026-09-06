@@ -12,7 +12,9 @@ public record ServerConfig(
         Path snapshotPath,
         FsyncPolicy fsyncPolicy,
         long snapshotIntervalSeconds,
-        String logLevel) {
+        String logLevel,
+        int maxValueBytes,
+        int maxArrayElements) {
 
     public ServerConfig {
         if (host == null || host.isBlank()) throw new IllegalArgumentException("host must not be blank");
@@ -21,5 +23,7 @@ public record ServerConfig(
         if (fsyncPolicy == null) throw new IllegalArgumentException("fsync policy is required");
         if (snapshotIntervalSeconds < 0) throw new IllegalArgumentException("snapshot interval must not be negative");
         if (logLevel == null || logLevel.isBlank()) throw new IllegalArgumentException("log level must not be blank");
+        if (maxValueBytes < 1) throw new IllegalArgumentException("max value bytes must be positive");
+        if (maxArrayElements < 1) throw new IllegalArgumentException("max array elements must be positive");
     }
 }

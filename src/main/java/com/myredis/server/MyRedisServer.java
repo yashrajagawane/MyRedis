@@ -30,6 +30,8 @@ public final class MyRedisServer {
     private final CommandParser commandParser;
     private final ExpirationScheduler expirationScheduler;
     private final PersistenceManager persistence;
+    private final int maxValueBytes;
+    private final int maxArrayElements;
     private volatile ServerSocket serverSocket;
 
     public MyRedisServer(int port) {
@@ -37,11 +39,17 @@ public final class MyRedisServer {
     }
 
     public MyRedisServer(String host, int port) {
+        this(host, port, RespLimits.DEFAULT_MAX_VALUE_BYTES, RespLimits.DEFAULT_MAX_ARRAY_ELEMENTS);
+    }
+
+    private MyRedisServer(String host, int port, int maxValueBytes, int maxArrayElements) {
         if (port < 0 || port > 65_535) {
             throw new IllegalArgumentException("port must be between 0 and 65535");
         }
         this.host = host;
         this.port = port;
+        this.maxValueBytes = maxValueBytes;
+        this.maxArrayElements = maxArrayElements;
         this.expiration = new ExpirationManager();
         this.storage = new InMemoryStorageEngine(expiration);
         this.persistence = PersistenceManager.disabled(storage);
@@ -56,11 +64,20 @@ public final class MyRedisServer {
 
     public MyRedisServer(String host, int port, InMemoryStorageEngine storage, CommandParser commandParser,
                          ExpirationManager expiration, PersistenceManager persistence) {
+        this(host, port, storage, commandParser, expiration, persistence,
+                RespLimits.DEFAULT_MAX_VALUE_BYTES, RespLimits.DEFAULT_MAX_ARRAY_ELEMENTS);
+    }
+
+    public MyRedisServer(String host, int port, InMemoryStorageEngine storage, CommandParser commandParser,
+                         ExpirationManager expiration, PersistenceManager persistence,
+                         int maxValueBytes, int maxArrayElements) {
         if (port < 0 || port > 65_535) {
             throw new IllegalArgumentException("port must be between 0 and 65535");
         }
         this.host = host;
         this.port = port;
+        this.maxValueBytes = maxValueBytes;
+        this.maxArrayElements = maxArrayElements;
         this.storage = storage;
         this.commandParser = commandParser;
         this.expiration = expiration;
@@ -81,7 +98,8 @@ public final class MyRedisServer {
                 try {
                     Socket client = socket.accept();
                     connectionRegistry.register(client);
-                    clientExecutor.submit(new ClientHandler(client, connectionRegistry, commandParser));
+                    clientExecutor.submit(new ClientHandler(client, connectionRegistry, commandParser,
+                            maxValueBytes, maxArrayElements));
                     LOGGER.info("Client connected from {}", client.getRemoteSocketAddress());
                 } catch (IOException exception) {
                     if (running.get()) {

@@ -28,7 +28,9 @@ public final class ConfigLoader {
                 Boolean.parseBoolean(values.getProperty("aof.enabled")), Path.of(values.getProperty("aof.path")),
                 Path.of(values.getProperty("snapshot.path")),
                 FsyncPolicy.valueOf(values.getProperty("aof.fsync").toUpperCase(Locale.ROOT)),
-                Long.parseLong(values.getProperty("snapshot.interval.seconds")), values.getProperty("log.level"));
+                Long.parseLong(values.getProperty("snapshot.interval.seconds")), values.getProperty("log.level"),
+                Integer.parseInt(values.getProperty("limits.max.value.bytes")),
+                Integer.parseInt(values.getProperty("limits.max.array.elements")));
     }
 
     static Properties defaults() {
@@ -41,6 +43,8 @@ public final class ConfigLoader {
         values.setProperty("snapshot.path", "data/myredis.snapshot");
         values.setProperty("snapshot.interval.seconds", "60");
         values.setProperty("log.level", "INFO");
+        values.setProperty("limits.max.value.bytes", "16777216");
+        values.setProperty("limits.max.array.elements", "1024");
         return values;
     }
 
@@ -67,6 +71,8 @@ public final class ConfigLoader {
         map(values, environment, "MYREDIS_SNAPSHOT_PATH", "snapshot.path");
         map(values, environment, "MYREDIS_SNAPSHOT_INTERVAL_SECONDS", "snapshot.interval.seconds");
         map(values, environment, "MYREDIS_LOG_LEVEL", "log.level");
+        map(values, environment, "MYREDIS_MAX_VALUE_BYTES", "limits.max.value.bytes");
+        map(values, environment, "MYREDIS_MAX_ARRAY_ELEMENTS", "limits.max.array.elements");
     }
 
     private static void map(Properties values, Map<String, String> environment, String env, String key) {

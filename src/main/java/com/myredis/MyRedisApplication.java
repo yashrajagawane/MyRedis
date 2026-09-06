@@ -25,7 +25,8 @@ public final class MyRedisApplication {
                 : PersistenceManager.disabled(storage);
         CommandParser parser = new CommandParser(new CommandRegistry(), storage, expiration, persistence);
         persistence.recover(parser);
-        MyRedisServer server = new MyRedisServer(config.host(), config.port(), storage, parser, expiration, persistence);
+        MyRedisServer server = new MyRedisServer(config.host(), config.port(), storage, parser, expiration, persistence,
+                config.maxValueBytes(), config.maxArrayElements());
         Runtime.getRuntime().addShutdownHook(new Thread(server::stop, "myredis-shutdown"));
         server.start();
     }
