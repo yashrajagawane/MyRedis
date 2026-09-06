@@ -1,6 +1,7 @@
 package com.myredis.persistence;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.myredis.command.CommandParser;
 import com.myredis.command.CommandRegistry;
@@ -21,6 +22,44 @@ class PersistenceRecoveryTest {
         }
         assertEquals(true, Files.size(directory.resolve("every.aof")) > 0);
         assertEquals(true, Files.size(directory.resolve("never.aof")) > 0);
+    }
+
+    @Test
+    void truncatesAnIncompleteFinalAofRecord() throws Exception {
+        Path directory = Files.createTempDirectory("myredis-aof-tail-");
+        Path aof = directory.resolve("myredis.aof");
+        Path snapshot = directory.resolve("myredis.snapshot");
+        String valid = java.util.Base64.getEncoder().encodeToString("SET".getBytes()) + " "
+                + java.util.Base64.getEncoder().encodeToString("key".getBytes()) + " "
+                + java.util.Base64.getEncoder().encodeToString("value".getBytes()) + "\n";
+        Files.writeString(aof, valid + "%%%partial");
+
+        ExpirationManager expiration = new ExpirationManager();
+        InMemoryStorageEngine storage = new InMemoryStorageEngine(expiration);
+        PersistenceManager persistence = new PersistenceManager(aof, snapshot, storage);
+        CommandParser parser = new CommandParser(new CommandRegistry(), storage, expiration, persistence);
+
+        persistence.recover(parser);
+
+        assertEquals("value", parser.parse("GET key").executeWithoutPersistence().response());
+        assertEquals(valid.getBytes(java.nio.charset.StandardCharsets.UTF_8).length, Files.size(aof));
+        persistence.close();
+    }
+
+    @Test
+    void rejectsCorruptionBeforeTheFinalAofRecord() throws Exception {
+        Path directory = Files.createTempDirectory("myredis-aof-corrupt-");
+        Path aof = directory.resolve("myredis.aof");
+        Path snapshot = directory.resolve("myredis.snapshot");
+        Files.writeString(aof, "%%%corrupt\nvalid-looking-tail\n");
+
+        ExpirationManager expiration = new ExpirationManager();
+        InMemoryStorageEngine storage = new InMemoryStorageEngine(expiration);
+        PersistenceManager persistence = new PersistenceManager(aof, snapshot, storage);
+        CommandParser parser = new CommandParser(new CommandRegistry(), storage, expiration, persistence);
+
+        assertThrows(java.io.IOException.class, () -> persistence.recover(parser));
+        persistence.close();
     }
 
     @Test
