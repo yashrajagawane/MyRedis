@@ -99,6 +99,18 @@ class CommandParserTest {
     }
 
     @Test
+    void rejectsExpireOverflowAndDoesNotResurrectExpiredKeys() throws Exception {
+        assertEquals("OK", parser.parse("SET expiring value PX 20").execute().response());
+        Thread.sleep(40);
+        assertEquals("0", parser.parse("PERSIST expiring").execute().response());
+        assertEquals("(nil)", parser.parse("GET expiring").execute().response());
+
+        assertEquals("OK", parser.parse("SET large value").execute().response());
+        assertEquals("-ERR value is not an integer or out of range",
+                parser.parse("EXPIRE large 9223372036854776").execute().response());
+    }
+
+    @Test
     void rejectsBlankAndUnknownCommands() {
         assertThrows(CommandParseException.class, () -> parser.parse("  "));
         assertThrows(CommandParseException.class, () -> parser.parse("NOPE"));
