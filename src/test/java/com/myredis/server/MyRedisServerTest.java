@@ -98,6 +98,30 @@ class MyRedisServerTest {
         serverTask.get(2, TimeUnit.SECONDS);
     }
 
+    @Test
+    void returnsAnErrorInsteadOfClosingConnectionForWrongType() throws Exception {
+        MyRedisServer server = new MyRedisServer(0);
+        CompletableFuture<Void> serverTask = startAsync(server);
+        try {
+            while (server.getPort() == 0) Thread.sleep(10);
+            try (Socket client = new Socket("localhost", server.getPort());
+                 BufferedReader reader = new BufferedReader(new InputStreamReader(
+                         client.getInputStream(), StandardCharsets.UTF_8));
+                 BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(
+                         client.getOutputStream(), StandardCharsets.UTF_8))) {
+                writer.write("LPUSH list value\r\n");
+                writer.flush();
+                assertEquals("1", reader.readLine());
+                writer.write("GET list\r\n");
+                writer.flush();
+                assertEquals("-ERR WRONGTYPE key 'list' contains LIST, expected STRING", reader.readLine());
+            }
+        } finally {
+            server.stop();
+        }
+        serverTask.get(2, TimeUnit.SECONDS);
+    }
+
     private static String readRespLine(java.io.InputStream input) throws Exception {
         StringBuilder line = new StringBuilder();
         int current;

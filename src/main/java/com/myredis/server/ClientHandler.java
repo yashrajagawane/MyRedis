@@ -54,8 +54,11 @@ public final class ClientHandler implements Runnable {
                     }
                     output.flush();
                 } catch (CommandParseException | ProtocolException exception) {
-                    output.write(("-ERR " + exception.getMessage() + "\r\n").getBytes(java.nio.charset.StandardCharsets.UTF_8));
-                    output.flush();
+                    writeError(output, exception.getMessage());
+                } catch (RuntimeException exception) {
+                    LOGGER.warn("Command failed for {}", socket.getRemoteSocketAddress(), exception);
+                    writeError(output, exception instanceof IllegalStateException
+                            ? "internal server error" : exception.getMessage());
                 }
             }
         } catch (IOException exception) {
@@ -64,5 +67,13 @@ public final class ClientHandler implements Runnable {
             connectionRegistry.unregister(socket);
             LOGGER.info("Client disconnected");
         }
+    }
+
+    private static void writeError(OutputStream output, String message) throws IOException {
+        String safeMessage = message == null || message.isBlank()
+                ? "internal server error"
+                : message.replace('\r', ' ').replace('\n', ' ');
+        output.write(("-ERR " + safeMessage + "\r\n").getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        output.flush();
     }
 }
