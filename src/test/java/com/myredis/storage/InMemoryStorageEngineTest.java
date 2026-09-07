@@ -38,4 +38,17 @@ class InMemoryStorageEngineTest {
         assertFalse(expiringStorage.removeIfExpired("key"));
         assertEquals("new", expiringStorage.getString("key").orElseThrow());
     }
+
+    @Test
+    void expiredKeysAreNotIncludedInSnapshots() throws Exception {
+        ExpirationManager expiration = new ExpirationManager();
+        InMemoryStorageEngine expiringStorage = new InMemoryStorageEngine(expiration);
+        expiringStorage.setString("key", "value");
+        expiration.setExpiryMillis("key", 1);
+        Thread.sleep(10);
+
+        assertTrue(expiringStorage.snapshotCommands().stream()
+                .noneMatch(command -> command.size() > 1 && command.get(1).equals("key")));
+        assertFalse(expiringStorage.exists("key"));
+    }
 }

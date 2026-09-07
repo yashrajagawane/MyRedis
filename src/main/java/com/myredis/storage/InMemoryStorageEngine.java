@@ -35,6 +35,7 @@ public final class InMemoryStorageEngine implements StorageEngine {
         for (Map.Entry<String, RedisObject> entry : values.entrySet()) {
             String key = entry.getKey();
             RedisObject object = entry.getValue();
+            if (removeIfExpired(key)) continue;
             synchronized (object) {
                 switch (object.type()) {
                     case STRING -> commands.add(List.of("SET", key, (String) object.value()));
@@ -66,6 +67,10 @@ public final class InMemoryStorageEngine implements StorageEngine {
                 }
             }
             long ttl = expiration.ttlSeconds(key).orElse(-1);
+            if (ttl == -2) {
+                values.remove(key, object);
+                continue;
+            }
             if (ttl > 0) commands.add(List.of("EXPIRE", key, Long.toString(ttl)));
         }
         return List.copyOf(commands);
