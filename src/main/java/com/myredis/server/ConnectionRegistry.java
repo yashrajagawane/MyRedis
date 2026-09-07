@@ -11,8 +11,17 @@ import org.slf4j.LoggerFactory;
 public final class ConnectionRegistry {
     private static final Logger LOGGER = LoggerFactory.getLogger(ConnectionRegistry.class);
     private final Set<Socket> sockets = ConcurrentHashMap.newKeySet();
+    private final int maxConnections;
 
-    public void register(Socket socket) { sockets.add(socket); }
+    public ConnectionRegistry(int maxConnections) {
+        if (maxConnections < 1) throw new IllegalArgumentException("max connections must be positive");
+        this.maxConnections = maxConnections;
+    }
+
+    public synchronized boolean register(Socket socket) {
+        if (sockets.size() >= maxConnections) return false;
+        return sockets.add(socket);
+    }
     public void unregister(Socket socket) { sockets.remove(socket); }
 
     public void closeAll() {

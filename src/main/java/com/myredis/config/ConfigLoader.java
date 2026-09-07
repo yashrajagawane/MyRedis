@@ -30,7 +30,8 @@ public final class ConfigLoader {
                     Path.of(values.getProperty("snapshot.path")), parseFsyncPolicy(values),
                     Long.parseLong(values.getProperty("snapshot.interval.seconds")), values.getProperty("log.level"),
                     Integer.parseInt(values.getProperty("limits.max.value.bytes")),
-                    Integer.parseInt(values.getProperty("limits.max.array.elements")));
+                    Integer.parseInt(values.getProperty("limits.max.array.elements")),
+                    Integer.parseInt(values.getProperty("limits.max.connections")));
         } catch (IllegalArgumentException exception) {
             throw new IllegalArgumentException("Invalid MyRedis configuration: " + exception.getMessage(), exception);
         }
@@ -48,6 +49,7 @@ public final class ConfigLoader {
         values.setProperty("log.level", "INFO");
         values.setProperty("limits.max.value.bytes", "16777216");
         values.setProperty("limits.max.array.elements", "1024");
+        values.setProperty("limits.max.connections", "10000");
         return values;
     }
 
@@ -76,6 +78,7 @@ public final class ConfigLoader {
         map(values, environment, "MYREDIS_LOG_LEVEL", "log.level");
         map(values, environment, "MYREDIS_MAX_VALUE_BYTES", "limits.max.value.bytes");
         map(values, environment, "MYREDIS_MAX_ARRAY_ELEMENTS", "limits.max.array.elements");
+        map(values, environment, "MYREDIS_MAX_CONNECTIONS", "limits.max.connections");
     }
 
     private static void map(Properties values, Map<String, String> environment, String env, String key) {

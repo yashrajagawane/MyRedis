@@ -23,7 +23,7 @@ public final class MyRedisServer {
     private final String host;
     private final int port;
     private final AtomicBoolean running = new AtomicBoolean();
-    private final ConnectionRegistry connectionRegistry = new ConnectionRegistry();
+    private final ConnectionRegistry connectionRegistry;
     private final ExecutorService clientExecutor = Executors.newVirtualThreadPerTaskExecutor();
     private final ExpirationManager expiration;
     private final InMemoryStorageEngine storage;
@@ -43,6 +43,10 @@ public final class MyRedisServer {
     }
 
     private MyRedisServer(String host, int port, int maxValueBytes, int maxArrayElements) {
+        this(host, port, maxValueBytes, maxArrayElements, 10_000);
+    }
+
+    private MyRedisServer(String host, int port, int maxValueBytes, int maxArrayElements, int maxConnections) {
         if (port < 0 || port > 65_535) {
             throw new IllegalArgumentException("port must be between 0 and 65535");
         }
@@ -50,6 +54,7 @@ public final class MyRedisServer {
         this.port = port;
         this.maxValueBytes = maxValueBytes;
         this.maxArrayElements = maxArrayElements;
+        this.connectionRegistry = new ConnectionRegistry(maxConnections);
         this.expiration = new ExpirationManager();
         this.storage = new InMemoryStorageEngine(expiration);
         this.persistence = PersistenceManager.disabled(storage);
@@ -65,12 +70,19 @@ public final class MyRedisServer {
     public MyRedisServer(String host, int port, InMemoryStorageEngine storage, CommandParser commandParser,
                          ExpirationManager expiration, PersistenceManager persistence) {
         this(host, port, storage, commandParser, expiration, persistence,
-                RespLimits.DEFAULT_MAX_VALUE_BYTES, RespLimits.DEFAULT_MAX_ARRAY_ELEMENTS);
+                RespLimits.DEFAULT_MAX_VALUE_BYTES, RespLimits.DEFAULT_MAX_ARRAY_ELEMENTS, 10_000);
     }
 
     public MyRedisServer(String host, int port, InMemoryStorageEngine storage, CommandParser commandParser,
                          ExpirationManager expiration, PersistenceManager persistence,
                          int maxValueBytes, int maxArrayElements) {
+        this(host, port, storage, commandParser, expiration, persistence,
+                maxValueBytes, maxArrayElements, 10_000);
+    }
+
+    public MyRedisServer(String host, int port, InMemoryStorageEngine storage, CommandParser commandParser,
+                         ExpirationManager expiration, PersistenceManager persistence,
+                         int maxValueBytes, int maxArrayElements, int maxConnections) {
         if (port < 0 || port > 65_535) {
             throw new IllegalArgumentException("port must be between 0 and 65535");
         }
@@ -78,6 +90,7 @@ public final class MyRedisServer {
         this.port = port;
         this.maxValueBytes = maxValueBytes;
         this.maxArrayElements = maxArrayElements;
+        this.connectionRegistry = new ConnectionRegistry(maxConnections);
         this.storage = storage;
         this.commandParser = commandParser;
         this.expiration = expiration;
@@ -97,7 +110,11 @@ public final class MyRedisServer {
             while (running.get()) {
                 try {
                     Socket client = socket.accept();
-                    connectionRegistry.register(client);
+                    if (!connectionRegistry.register(client)) {
+                        LOGGER.warn("Maximum client connection limit reached; rejecting {}", client.getRemoteSocketAddress());
+                        client.close();
+                        continue;
+                    }
                     clientExecutor.submit(new ClientHandler(client, connectionRegistry, commandParser,
                             maxValueBytes, maxArrayElements));
                     LOGGER.info("Client connected from {}", client.getRemoteSocketAddress());
