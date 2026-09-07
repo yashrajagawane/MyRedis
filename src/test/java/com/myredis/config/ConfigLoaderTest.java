@@ -2,6 +2,8 @@ package com.myredis.config;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.myredis.persistence.FsyncPolicy;
 import java.nio.file.Files;
@@ -20,6 +22,27 @@ class ConfigLoaderTest {
         assertEquals(FsyncPolicy.NEVER, loaded.fsyncPolicy());
         assertEquals(16_777_216, loaded.maxValueBytes());
         assertEquals(1_024, loaded.maxArrayElements());
+        Files.deleteIfExists(config);
+    }
+
+    @Test
+    void rejectsInvalidBooleanValuesInsteadOfSilentlyDisablingAof() throws Exception {
+        Path config = Files.createTempFile("myredis", ".conf");
+        Files.writeString(config, "aof.enabled=treu\n");
+
+        assertThrows(IllegalArgumentException.class,
+                () -> ConfigLoader.load(new String[]{"--config", config.toString()}));
+        Files.deleteIfExists(config);
+    }
+
+    @Test
+    void rejectsInvalidFsyncPolicyWithActionableMessage() throws Exception {
+        Path config = Files.createTempFile("myredis", ".conf");
+        Files.writeString(config, "aof.fsync=ON\n");
+
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> ConfigLoader.load(new String[]{"--config", config.toString()}));
+        assertTrue(error.getMessage().contains("aof.fsync must be"));
         Files.deleteIfExists(config);
     }
 }

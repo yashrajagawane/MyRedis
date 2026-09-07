@@ -24,13 +24,16 @@ public final class ConfigLoader {
         }
         applyEnvironment(values, System.getenv());
         applyArguments(values, args);
-        return new ServerConfig(values.getProperty("host"), Integer.parseInt(values.getProperty("port")),
-                Boolean.parseBoolean(values.getProperty("aof.enabled")), Path.of(values.getProperty("aof.path")),
-                Path.of(values.getProperty("snapshot.path")),
-                FsyncPolicy.valueOf(values.getProperty("aof.fsync").toUpperCase(Locale.ROOT)),
-                Long.parseLong(values.getProperty("snapshot.interval.seconds")), values.getProperty("log.level"),
-                Integer.parseInt(values.getProperty("limits.max.value.bytes")),
-                Integer.parseInt(values.getProperty("limits.max.array.elements")));
+        try {
+            return new ServerConfig(values.getProperty("host"), Integer.parseInt(values.getProperty("port")),
+                    parseBoolean(values, "aof.enabled"), Path.of(values.getProperty("aof.path")),
+                    Path.of(values.getProperty("snapshot.path")), parseFsyncPolicy(values),
+                    Long.parseLong(values.getProperty("snapshot.interval.seconds")), values.getProperty("log.level"),
+                    Integer.parseInt(values.getProperty("limits.max.value.bytes")),
+                    Integer.parseInt(values.getProperty("limits.max.array.elements")));
+        } catch (IllegalArgumentException exception) {
+            throw new IllegalArgumentException("Invalid MyRedis configuration: " + exception.getMessage(), exception);
+        }
     }
 
     static Properties defaults() {
@@ -78,6 +81,22 @@ public final class ConfigLoader {
     private static void map(Properties values, Map<String, String> environment, String env, String key) {
         String value = environment.get(env);
         if (value != null && !value.isBlank()) values.setProperty(key, value);
+    }
+
+    private static boolean parseBoolean(Properties values, String key) {
+        String value = values.getProperty(key);
+        if ("true".equalsIgnoreCase(value)) return true;
+        if ("false".equalsIgnoreCase(value)) return false;
+        throw new IllegalArgumentException(key + " must be true or false");
+    }
+
+    private static FsyncPolicy parseFsyncPolicy(Properties values) {
+        String value = values.getProperty("aof.fsync");
+        try {
+            return FsyncPolicy.valueOf(value.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException exception) {
+            throw new IllegalArgumentException("aof.fsync must be ALWAYS, EVERY_SECOND, or NEVER", exception);
+        }
     }
 
     private static void applyArguments(Properties values, String[] args) {
