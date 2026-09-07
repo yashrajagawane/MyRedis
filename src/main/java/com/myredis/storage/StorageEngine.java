@@ -6,6 +6,8 @@ import java.util.List;
 public interface StorageEngine {
     void setString(String key, String value);
 
+    long incrementString(String key, long delta);
+
     Optional<String> getString(String key);
 
     boolean delete(String key);

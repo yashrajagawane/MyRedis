@@ -99,6 +99,16 @@ class CommandParserTest {
     }
 
     @Test
+    void supportsAtomicNumericCommands() {
+        assertEquals("1", parser.parse("INCR counter").execute().response());
+        assertEquals("3", parser.parse("INCRBY counter 2").execute().response());
+        assertEquals("2", parser.parse("DECR counter").execute().response());
+        assertEquals("OK", parser.parse("SET text hello").execute().response());
+        assertEquals("value is not an integer or out of range",
+                parser.parse("INCR text").execute().response().substring(5));
+    }
+
+    @Test
     void rejectsExpireOverflowAndDoesNotResurrectExpiredKeys() throws Exception {
         assertEquals("OK", parser.parse("SET expiring value PX 20").execute().response());
         Thread.sleep(40);

@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.myredis.expiration.ExpirationManager;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
 import org.junit.jupiter.api.Test;
 
 class InMemoryStorageEngineTest {
@@ -50,5 +52,18 @@ class InMemoryStorageEngineTest {
         assertTrue(expiringStorage.snapshotCommands().stream()
                 .noneMatch(command -> command.size() > 1 && command.get(1).equals("key")));
         assertFalse(expiringStorage.exists("key"));
+    }
+
+    @Test
+    void incrementsAreAtomicForConcurrentClients() {
+        InMemoryStorageEngine counter = new InMemoryStorageEngine();
+        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            var tasks = java.util.stream.IntStream.range(0, 100)
+                    .mapToObj(ignored -> CompletableFuture.runAsync(
+                            () -> counter.incrementString("counter", 1), executor))
+                    .toList();
+            tasks.forEach(CompletableFuture::join);
+        }
+        assertEquals("100", counter.getString("counter").orElseThrow());
     }
 }

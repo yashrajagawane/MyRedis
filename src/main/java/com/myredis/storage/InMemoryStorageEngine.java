@@ -84,6 +84,28 @@ public final class InMemoryStorageEngine implements StorageEngine {
     }
 
     @Override
+    public long incrementString(String key, long delta) {
+        requireKey(key);
+        removeIfExpired(key);
+        RedisObject updated = values.compute(key, (ignored, current) -> {
+            if (current == null) return new RedisObject(RedisType.STRING, Long.toString(delta));
+            requireType(key, current, RedisType.STRING);
+            long currentValue;
+            try {
+                currentValue = Long.parseLong((String) current.value());
+            } catch (NumberFormatException exception) {
+                throw new IllegalArgumentException("value is not an integer or out of range", exception);
+            }
+            try {
+                return new RedisObject(RedisType.STRING, Long.toString(Math.addExact(currentValue, delta)));
+            } catch (ArithmeticException exception) {
+                throw new IllegalArgumentException("increment or decrement would overflow", exception);
+            }
+        });
+        return Long.parseLong((String) updated.value());
+    }
+
+    @Override
     public Optional<String> getString(String key) {
         removeIfExpired(key);
         RedisObject object = values.get(key);
