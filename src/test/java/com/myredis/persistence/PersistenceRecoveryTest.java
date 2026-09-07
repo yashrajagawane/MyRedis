@@ -153,4 +153,30 @@ class PersistenceRecoveryTest {
                 .executeWithoutPersistence().response());
         recovered.close();
     }
+
+    @Test
+    void recoversAtomicNumericMutationsFromAof() throws Exception {
+        Path directory = Files.createTempDirectory("myredis-counter-recovery-");
+        Path aof = directory.resolve("myredis.aof");
+        Path snapshot = directory.resolve("myredis.snapshot");
+
+        ExpirationManager expiration = new ExpirationManager();
+        InMemoryStorageEngine storage = new InMemoryStorageEngine(expiration);
+        PersistenceManager writer = new PersistenceManager(aof, snapshot, storage);
+        CommandParser parser = new CommandParser(new CommandRegistry(), storage, expiration, writer);
+        parser.parse("INCR counter").execute();
+        parser.parse("INCRBY counter 4").execute();
+        parser.parse("DECR counter").execute();
+        writer.close();
+
+        ExpirationManager recoveredExpiration = new ExpirationManager();
+        InMemoryStorageEngine recoveredStorage = new InMemoryStorageEngine(recoveredExpiration);
+        PersistenceManager recovered = new PersistenceManager(aof, snapshot, recoveredStorage);
+        CommandParser recoveredParser = new CommandParser(
+                new CommandRegistry(), recoveredStorage, recoveredExpiration, recovered);
+        recovered.recover(recoveredParser);
+
+        assertEquals("4", recoveredParser.parse("GET counter").executeWithoutPersistence().response());
+        recovered.close();
+    }
 }
