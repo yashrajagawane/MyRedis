@@ -41,6 +41,7 @@ public final class CommandRegistry {
         register("ZREM", ZremCommand::new);
         register("ZRANK", ZrankCommand::new);
         register("EXPIRE", ExpireCommand::new);
+        register("PEXPIRE", PexpireCommand::new);
         register("TTL", TtlCommand::new);
         register("PERSIST", PersistCommand::new);
     }

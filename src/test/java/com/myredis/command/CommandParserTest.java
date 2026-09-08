@@ -114,6 +114,8 @@ class CommandParserTest {
         assertEquals("-1", parser.parse("TTL temporary").execute().response());
         assertEquals("1", parser.parse("EXPIRE temporary 1").execute().response());
         assertEquals("1", parser.parse("PERSIST temporary").execute().response());
+        assertEquals("1", parser.parse("PEXPIRE temporary 1000").execute().response());
+        assertEquals("1", parser.parse("PERSIST temporary").execute().response());
     }
 
     @Test

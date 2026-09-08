@@ -69,6 +69,7 @@ Counter commands create a missing key at the requested value, preserve an existi
 | Command | Syntax | Result |
 | --- | --- | --- |
 | `EXPIRE` | `EXPIRE key seconds` | `1` when applied, otherwise `0` |
+| `PEXPIRE` | `PEXPIRE key milliseconds` | `1` when applied, otherwise `0` |
 | `TTL` | `TTL key` | Remaining seconds, `-1` without TTL, or `-2` when missing/expired |
 | `PERSIST` | `PERSIST key` | `1` when TTL removed, otherwise `0` |
 

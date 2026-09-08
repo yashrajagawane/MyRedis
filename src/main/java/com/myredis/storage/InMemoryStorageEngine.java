@@ -66,12 +66,12 @@ public final class InMemoryStorageEngine implements StorageEngine {
                     }
                 }
             }
-            long ttl = expiration.ttlSeconds(key).orElse(-1);
+            long ttl = expiration.ttlMillis(key).orElse(-1);
             if (ttl == -2) {
                 values.remove(key, object);
                 continue;
             }
-            if (ttl > 0) commands.add(List.of("EXPIRE", key, Long.toString(ttl)));
+            if (ttl > 0) commands.add(List.of("PEXPIRE", key, Long.toString(ttl)));
         }
         return List.copyOf(commands);
     }

@@ -2,6 +2,7 @@ package com.myredis.persistence;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.myredis.expiration.ExpirationManager;
 import com.myredis.storage.InMemoryStorageEngine;
@@ -27,5 +28,21 @@ class SnapshotWriterTest {
         try (var files = Files.list(directory)) {
             assertFalse(files.anyMatch(path -> path.getFileName().toString().contains(".tmp-")));
         }
+    }
+
+    @Test
+    void writesMillisecondPrecisionExpirationCommands() throws Exception {
+        Path directory = Files.createTempDirectory("myredis-snapshot-ttl-");
+        Path snapshot = directory.resolve("myredis.snapshot");
+        ExpirationManager expiration = new ExpirationManager();
+        InMemoryStorageEngine storage = new InMemoryStorageEngine(expiration);
+        storage.setString("key", "value");
+        expiration.setExpiryMillis("key", 5_000);
+
+        new SnapshotWriter().write(snapshot, storage, 0);
+
+        assertTrue(Files.readAllLines(snapshot).stream().skip(2)
+                .map(PersistenceCodec::decode)
+                .anyMatch(command -> command.getFirst().equals("PEXPIRE")));
     }
 }

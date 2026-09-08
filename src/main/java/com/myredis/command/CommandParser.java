@@ -101,7 +101,7 @@ public final class CommandParser {
 
         private static boolean isMutating(String command) {
             return java.util.Set.of("SET", "DEL", "LPUSH", "RPUSH", "LPOP", "RPOP", "SADD", "SREM",
-                    "HSET", "HDEL", "ZADD", "ZREM", "EXPIRE", "PERSIST", "INCR", "DECR", "INCRBY")
+                    "HSET", "HDEL", "ZADD", "ZREM", "EXPIRE", "PEXPIRE", "PERSIST", "INCR", "DECR", "INCRBY")
                     .contains(command);
         }
     }

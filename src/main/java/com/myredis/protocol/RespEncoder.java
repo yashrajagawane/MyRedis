@@ -8,7 +8,7 @@ import java.util.Set;
 /** Encodes Phase 8 command results as RESP2 values. */
 public final class RespEncoder {
     private static final Set<String> INTEGER_COMMANDS = Set.of(
-            "DEL", "EXISTS", "EXPIRE", "TTL", "PERSIST", "INCR", "DECR", "INCRBY", "LPUSH", "RPUSH", "LLEN",
+            "DEL", "EXISTS", "EXPIRE", "PEXPIRE", "TTL", "PERSIST", "INCR", "DECR", "INCRBY", "LPUSH", "RPUSH", "LLEN",
             "SADD", "SREM", "SISMEMBER", "SCARD", "HSET", "HDEL", "HEXISTS", "ZADD", "ZREM", "ZRANK");
     private static final Set<String> ARRAY_COMMANDS = Set.of("LRANGE", "SMEMBERS", "HGETALL", "ZRANGE");
 
