@@ -24,8 +24,10 @@ one warmup iteration, and two one-second measurement iterations:
 | --- | ---: |
 | `StorageBenchmark.get` | 133.985 ops/us |
 | `StorageBenchmark.set` | 38.611 ops/us |
+| `StorageBenchmark.increment` | 14.281 ops/us |
 
-The counter benchmark is available through `StorageBenchmark.increment`; its result should be collected with the same methodology before being compared across revisions.
+The counter benchmark also measured `0.067 us/op` average time under the same
+settings. The run used JMH 1.37 with compiler blackholes enabled and one thread.
 
 These numbers are environment-dependent and should only be compared with runs
 using the same JVM, hardware, benchmark settings, and JMH version.
