@@ -15,6 +15,7 @@ public final class ConfigLoader {
     }
 
     public static ServerConfig load(String[] args) throws IOException {
+        validateArguments(args);
         Properties values = defaults();
         Path configPath = findConfigPath(args);
         if (configPath != null) {
@@ -65,6 +66,14 @@ public final class ConfigLoader {
         }
         Path defaultPath = Path.of("myredis.conf");
         return Files.exists(defaultPath) ? defaultPath : null;
+    }
+
+    private static void validateArguments(String[] args) {
+        for (int index = 0; index < args.length; index++) {
+            if (args[index].equals("--config") && index == args.length - 1) {
+                throw new IllegalArgumentException("--config requires a file path");
+            }
+        }
     }
 
     private static void applyEnvironment(Properties values, Map<String, String> environment) {

@@ -57,4 +57,11 @@ class ConfigLoaderTest {
         assertTrue(error.getMessage().contains("log level must be"));
         Files.deleteIfExists(config);
     }
+
+    @Test
+    void rejectsConfigFlagWithoutAPath() {
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> ConfigLoader.load(new String[]{"--config"}));
+        assertTrue(error.getMessage().contains("--config requires a file path"));
+    }
 }
