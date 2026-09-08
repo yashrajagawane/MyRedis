@@ -79,9 +79,14 @@ public final class PersistenceManager implements AutoCloseable {
 
     public void recover(CommandParser parser) throws IOException {
         if (!enabled) return;
-        long offset = new SnapshotLoader().load(snapshotPath, parser);
-        int replayed = new AofReplayer().replay(aofPath, offset, parser);
-        LOGGER.info("Recovered snapshot and replayed {} AOF commands", replayed);
+        try {
+            long offset = new SnapshotLoader().load(snapshotPath, parser);
+            int replayed = new AofReplayer().replay(aofPath, offset, parser);
+            LOGGER.info("Recovered snapshot and replayed {} AOF commands", replayed);
+        } catch (IOException exception) {
+            persistenceErrors.incrementAndGet();
+            throw exception;
+        }
     }
 
     public synchronized void snapshot() throws IOException {

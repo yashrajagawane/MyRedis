@@ -108,6 +108,7 @@ class PersistenceRecoveryTest {
         CommandParser parser = new CommandParser(new CommandRegistry(), storage, expiration, persistence);
 
         assertThrows(java.io.IOException.class, () -> persistence.recover(parser));
+        assertEquals(1, persistence.persistenceErrors());
         persistence.close();
     }
 
