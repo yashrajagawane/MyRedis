@@ -7,6 +7,7 @@ public final class InfoCommand implements Command {
             return CommandResult.error("wrong number of arguments for 'info' command");
         }
         return new CommandResult(context.metrics().info(context.expiration().expiredKeys(),
-                context.persistence().aofWrites(), context.persistence().snapshots()));
+                context.persistence().aofWrites(), context.persistence().snapshots(),
+                context.persistence().persistenceErrors()));
     }
 }

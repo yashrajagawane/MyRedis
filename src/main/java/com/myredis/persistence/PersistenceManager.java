@@ -23,6 +23,7 @@ public final class PersistenceManager implements AutoCloseable {
     private final ScheduledExecutorService snapshotExecutor;
     private final AtomicLong aofWrites = new AtomicLong();
     private final AtomicLong snapshots = new AtomicLong();
+    private final AtomicLong persistenceErrors = new AtomicLong();
     private final ReentrantLock mutationLock = new ReentrantLock(true);
     private AofWriter aofWriter;
 
@@ -62,6 +63,7 @@ public final class PersistenceManager implements AutoCloseable {
             aofWriter.append(command);
             aofWrites.incrementAndGet();
         } catch (IOException exception) {
+            persistenceErrors.incrementAndGet();
             throw new IllegalStateException("Could not append AOF command", exception);
         }
     }
@@ -88,6 +90,9 @@ public final class PersistenceManager implements AutoCloseable {
         try {
             new SnapshotWriter().write(snapshotPath, storage, aofWriter.size());
             snapshots.incrementAndGet();
+        } catch (IOException exception) {
+            persistenceErrors.incrementAndGet();
+            throw exception;
         } finally {
             mutationLock.unlock();
         }
@@ -99,6 +104,10 @@ public final class PersistenceManager implements AutoCloseable {
 
     public long snapshots() {
         return snapshots.get();
+    }
+
+    public long persistenceErrors() {
+        return persistenceErrors.get();
     }
 
     @Override
