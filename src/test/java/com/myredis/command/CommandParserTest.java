@@ -2,6 +2,7 @@ package com.myredis.command;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 import com.myredis.storage.InMemoryStorageEngine;
@@ -35,6 +36,17 @@ class CommandParserTest {
         assertEquals("(nil)", parser.parse("GET key").execute().response());
         assertEquals("0", parser.parse("EXISTS key").execute().response());
         assertEquals("0", parser.parse("DEL key").execute().response());
+    }
+
+    @Test
+    void exposesOperationalCommandMetrics() {
+        parser.parse("PING").execute();
+        String info = parser.parse("INFO").execute().response();
+
+        assertTrue(info.contains("# Stats"));
+        assertTrue(info.contains("commands_processed:2"));
+        assertTrue(info.contains("command_ping:1"));
+        assertTrue(info.contains("command_info:1"));
     }
 
     @Test

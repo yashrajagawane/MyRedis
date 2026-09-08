@@ -6,6 +6,7 @@ import com.myredis.storage.StorageEngine;
 import com.myredis.storage.InMemoryStorageEngine;
 import com.myredis.expiration.ExpirationManager;
 import com.myredis.persistence.PersistenceManager;
+import com.myredis.observability.ServerMetrics;
 
 /** Converts the Phase 2 whitespace command format into an executable command. */
 public final class CommandParser {
@@ -13,6 +14,7 @@ public final class CommandParser {
     private final StorageEngine storage;
     private final ExpirationManager expiration;
     private final PersistenceManager persistence;
+    private final ServerMetrics metrics;
 
     public CommandParser(CommandRegistry registry, StorageEngine storage) {
         this(registry, storage, storage instanceof InMemoryStorageEngine inMemory
@@ -28,10 +30,16 @@ public final class CommandParser {
 
     public CommandParser(CommandRegistry registry, StorageEngine storage,
                          ExpirationManager expiration, PersistenceManager persistence) {
+        this(registry, storage, expiration, persistence, new ServerMetrics());
+    }
+
+    public CommandParser(CommandRegistry registry, StorageEngine storage,
+                         ExpirationManager expiration, PersistenceManager persistence, ServerMetrics metrics) {
         this.registry = registry;
         this.storage = storage;
         this.expiration = expiration;
         this.persistence = persistence;
+        this.metrics = metrics;
     }
 
     public ParsedCommand parse(String input) {
@@ -49,12 +57,13 @@ public final class CommandParser {
         Command command = registry.find(name)
                 .orElseThrow(() -> new CommandParseException(
                         "unknown command '" + tokens.getFirst() + "'"));
-        return new ParsedCommand(name, command, tokens.subList(1, tokens.size()), storage, expiration, persistence);
+        return new ParsedCommand(name, command, tokens.subList(1, tokens.size()), storage, expiration, persistence,
+                metrics);
     }
 
     public record ParsedCommand(
             String name, Command command, List<String> arguments, StorageEngine storage,
-            ExpirationManager expiration, PersistenceManager persistence) {
+            ExpirationManager expiration, PersistenceManager persistence, ServerMetrics metrics) {
         public ParsedCommand {
             arguments = List.copyOf(arguments);
             if (storage == null) {
@@ -62,9 +71,11 @@ public final class CommandParser {
             }
             if (expiration == null) throw new IllegalArgumentException("expiration is required");
             if (persistence == null) throw new IllegalArgumentException("persistence is required");
+            if (metrics == null) throw new IllegalArgumentException("metrics are required");
         }
 
         public CommandResult execute() {
+            metrics.recordCommand(name);
             if (!isMutating(name)) return executeCommand();
             return persistence.withMutation(() -> {
                 CommandResult result = executeCommand();
@@ -81,7 +92,7 @@ public final class CommandParser {
         }
 
         private CommandResult executeCommand() {
-            return command.execute(new CommandContext(arguments, storage, expiration, persistence));
+            return command.execute(new CommandContext(arguments, storage, expiration, persistence, metrics));
         }
 
         private static boolean isMutating(String command) {
