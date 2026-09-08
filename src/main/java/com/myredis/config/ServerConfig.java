@@ -2,6 +2,8 @@ package com.myredis.config;
 
 import com.myredis.persistence.FsyncPolicy;
 import java.nio.file.Path;
+import java.util.Locale;
+import java.util.Set;
 
 /** Immutable runtime configuration for a MyRedis server. */
 public record ServerConfig(
@@ -24,6 +26,9 @@ public record ServerConfig(
         if (fsyncPolicy == null) throw new IllegalArgumentException("fsync policy is required");
         if (snapshotIntervalSeconds < 0) throw new IllegalArgumentException("snapshot interval must not be negative");
         if (logLevel == null || logLevel.isBlank()) throw new IllegalArgumentException("log level must not be blank");
+        if (!Set.of("TRACE", "DEBUG", "INFO", "WARN", "ERROR").contains(logLevel.toUpperCase(Locale.ROOT))) {
+            throw new IllegalArgumentException("log level must be TRACE, DEBUG, INFO, WARN, or ERROR");
+        }
         if (maxValueBytes < 1) throw new IllegalArgumentException("max value bytes must be positive");
         if (maxArrayElements < 1) throw new IllegalArgumentException("max array elements must be positive");
         if (maxConnections < 1) throw new IllegalArgumentException("max connections must be positive");

@@ -46,4 +46,15 @@ class ConfigLoaderTest {
         assertTrue(error.getMessage().contains("aof.fsync must be"));
         Files.deleteIfExists(config);
     }
+
+    @Test
+    void rejectsUnsupportedLogLevels() throws Exception {
+        Path config = Files.createTempFile("myredis", ".conf");
+        Files.writeString(config, "log.level=VERBOSE\n");
+
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> ConfigLoader.load(new String[]{"--config", config.toString()}));
+        assertTrue(error.getMessage().contains("log level must be"));
+        Files.deleteIfExists(config);
+    }
 }
