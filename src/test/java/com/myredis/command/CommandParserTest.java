@@ -41,11 +41,16 @@ class CommandParserTest {
     @Test
     void exposesOperationalCommandMetrics() {
         parser.parse("PING").execute();
+        parser.parse("GET missing").execute();
+        parser.parse("SET present value").execute();
+        parser.parse("GET present").execute();
         String info = parser.parse("INFO").execute().response();
 
         assertTrue(info.contains("# Stats"));
         assertTrue(info.contains("connected_clients:0"));
-        assertTrue(info.contains("commands_processed:2"));
+        assertTrue(info.contains("keyspace_hits:1"));
+        assertTrue(info.contains("keyspace_misses:1"));
+        assertTrue(info.contains("commands_processed:5"));
         assertTrue(info.contains("command_ping:1"));
         assertTrue(info.contains("command_info:1"));
     }

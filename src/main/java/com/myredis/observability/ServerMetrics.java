@@ -10,6 +10,8 @@ import java.util.stream.Collectors;
 public final class ServerMetrics {
     private final AtomicLong commandsProcessed = new AtomicLong();
     private final AtomicLong connectedClients = new AtomicLong();
+    private final AtomicLong keyspaceHits = new AtomicLong();
+    private final AtomicLong keyspaceMisses = new AtomicLong();
     private final Map<String, LongAdder> commandsByName = new ConcurrentHashMap<>();
 
     public void recordCommand(String command) {
@@ -25,6 +27,14 @@ public final class ServerMetrics {
         connectedClients.updateAndGet(current -> Math.max(0, current - 1));
     }
 
+    public void recordGetHit() {
+        keyspaceHits.incrementAndGet();
+    }
+
+    public void recordGetMiss() {
+        keyspaceMisses.incrementAndGet();
+    }
+
     public String info() {
         String commandCounts = commandsByName.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
@@ -32,6 +42,7 @@ public final class ServerMetrics {
                 .collect(Collectors.joining("\r\n"));
         return "# Server\r\nmyredis_runtime:java21\r\n# Clients\r\nconnected_clients:"
                 + connectedClients.get() + "\r\n# Stats\r\ncommands_processed:"
-                + commandsProcessed.get() + "\r\n" + commandCounts + "\r\n";
+                + commandsProcessed.get() + "\r\nkeyspace_hits:" + keyspaceHits.get()
+                + "\r\nkeyspace_misses:" + keyspaceMisses.get() + "\r\n" + commandCounts + "\r\n";
     }
 }

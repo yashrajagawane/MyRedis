@@ -6,7 +6,12 @@ public final class GetCommand implements Command {
         if (context.arguments().size() != 1) {
             return CommandResult.error("wrong number of arguments for 'get' command");
         }
-        return new CommandResult(context.storage().getString(context.arguments().getFirst())
-                .orElse("(nil)"));
+        var value = context.storage().getString(context.arguments().getFirst());
+        if (value.isPresent()) {
+            context.metrics().recordGetHit();
+            return new CommandResult(value.get());
+        }
+        context.metrics().recordGetMiss();
+        return new CommandResult("(nil)");
     }
 }
