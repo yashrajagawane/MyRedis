@@ -24,6 +24,7 @@ public class StorageBenchmark {
     @org.openjdk.jmh.annotations.Setup
     public void setup() {
         storage.setString("key", "value");
+        storage.setString("counter", "0");
     }
 
     @Benchmark
@@ -34,5 +35,10 @@ public class StorageBenchmark {
     @Benchmark
     public String get() {
         return storage.getString("key").orElseThrow();
+    }
+
+    @Benchmark
+    public long increment() {
+        return storage.incrementString("counter", 1);
     }
 }

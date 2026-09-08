@@ -1,6 +1,6 @@
 # MyRedis Benchmarks
 
-The benchmark suite uses JMH and measures direct in-memory `GET` and `SET` operations.
+The benchmark suite uses JMH and measures direct in-memory `GET`, `SET`, and atomic `INCR` operations.
 
 Run the complete verification suite with:
 
@@ -24,6 +24,8 @@ one warmup iteration, and two one-second measurement iterations:
 | --- | ---: |
 | `StorageBenchmark.get` | 133.985 ops/us |
 | `StorageBenchmark.set` | 38.611 ops/us |
+
+The counter benchmark is available through `StorageBenchmark.increment`; its result should be collected with the same methodology before being compared across revisions.
 
 These numbers are environment-dependent and should only be compared with runs
 using the same JVM, hardware, benchmark settings, and JMH version.
