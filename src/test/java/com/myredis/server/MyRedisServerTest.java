@@ -99,6 +99,42 @@ class MyRedisServerTest {
     }
 
     @Test
+    void preservesResponseOrderForPipelinedPlainAndRespCommands() throws Exception {
+        MyRedisServer server = new MyRedisServer(0);
+        CompletableFuture<Void> serverTask = startAsync(server);
+        try {
+            while (server.getPort() == 0) Thread.sleep(10);
+            try (Socket client = new Socket("localhost", server.getPort());
+                 BufferedReader reader = new BufferedReader(new InputStreamReader(
+                         client.getInputStream(), StandardCharsets.UTF_8));
+                 BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(
+                         client.getOutputStream(), StandardCharsets.UTF_8))) {
+                writer.write("SET pipelined plain\r\nGET pipelined\r\nPING\r\n");
+                writer.flush();
+                assertEquals("OK", reader.readLine());
+                assertEquals("plain", reader.readLine());
+                assertEquals("PONG", reader.readLine());
+            }
+
+            try (Socket client = new Socket("localhost", server.getPort());
+                 java.io.InputStream input = client.getInputStream();
+                 java.io.OutputStream output = client.getOutputStream()) {
+                output.write(("*3\r\n$3\r\nSET\r\n$3\r\nkey\r\n$5\r\nvalue\r\n"
+                        + "*2\r\n$3\r\nGET\r\n$3\r\nkey\r\n"
+                        + "*1\r\n$4\r\nPING\r\n").getBytes(StandardCharsets.UTF_8));
+                output.flush();
+                assertEquals("+OK", readRespLine(input));
+                assertEquals("$5", readRespLine(input));
+                assertEquals("value", readRespLine(input));
+                assertEquals("+PONG", readRespLine(input));
+            }
+        } finally {
+            server.stop();
+        }
+        serverTask.get(2, TimeUnit.SECONDS);
+    }
+
+    @Test
     void returnsAnErrorInsteadOfClosingConnectionForWrongType() throws Exception {
         MyRedisServer server = new MyRedisServer(0);
         CompletableFuture<Void> serverTask = startAsync(server);
