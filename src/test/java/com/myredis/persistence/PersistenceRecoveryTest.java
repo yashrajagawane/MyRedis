@@ -32,6 +32,21 @@ class PersistenceRecoveryTest {
     }
 
     @Test
+    void countsSnapshotWriteFailures() throws Exception {
+        Path directory = Files.createTempDirectory("myredis-persistence-error-");
+        Path snapshotDirectory = directory.resolve("snapshot-directory");
+        Files.createDirectory(snapshotDirectory);
+        ExpirationManager expiration = new ExpirationManager();
+        InMemoryStorageEngine storage = new InMemoryStorageEngine(expiration);
+        PersistenceManager persistence = new PersistenceManager(
+                directory.resolve("myredis.aof"), snapshotDirectory, storage);
+
+        assertThrows(java.io.IOException.class, persistence::snapshot);
+        assertEquals(1, persistence.persistenceErrors());
+        persistence.close();
+    }
+
+    @Test
     void supportsEverySecondAndNeverFsyncPolicies() throws Exception {
         Path directory = Files.createTempDirectory("myredis-fsync-");
         try (AofWriter everySecond = new AofWriter(directory.resolve("every.aof"), FsyncPolicy.EVERY_SECOND);
