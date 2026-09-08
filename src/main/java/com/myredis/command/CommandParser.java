@@ -80,15 +80,20 @@ public final class CommandParser {
 
         public CommandResult execute() {
             metrics.recordCommand(name);
-            if (!isMutating(name)) return executeCommand();
-            return persistence.withMutation(() -> {
-                CommandResult result = executeCommand();
-                if (!result.response().startsWith("-ERR")) {
-                    persistence.record(java.util.stream.Stream.concat(
-                            java.util.stream.Stream.of(name), arguments.stream()).toList());
-                }
-                return result;
-            });
+            long startedAt = System.nanoTime();
+            try {
+                if (!isMutating(name)) return executeCommand();
+                return persistence.withMutation(() -> {
+                    CommandResult result = executeCommand();
+                    if (!result.response().startsWith("-ERR")) {
+                        persistence.record(java.util.stream.Stream.concat(
+                                java.util.stream.Stream.of(name), arguments.stream()).toList());
+                    }
+                    return result;
+                });
+            } finally {
+                metrics.recordCommandLatency(System.nanoTime() - startedAt);
+            }
         }
 
         public CommandResult executeWithoutPersistence() {
