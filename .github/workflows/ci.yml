@@ -37,3 +37,18 @@ jobs:
 
       - name: Validate Docker image
         run: test "$(docker image inspect myredis:ci --format '{{.Id}}')" != ""
+
+      - name: Smoke test Docker container
+        run: |
+          docker run --detach --name myredis-ci --publish 6380:6379 myredis:ci
+          cleanup() { docker rm --force myredis-ci; }
+          trap cleanup EXIT
+          for attempt in {1..20}; do
+            status="$(docker inspect --format '{{.State.Health.Status}}' myredis-ci)"
+            if [ "$status" = "healthy" ]; then
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs myredis-ci
+          exit 1
