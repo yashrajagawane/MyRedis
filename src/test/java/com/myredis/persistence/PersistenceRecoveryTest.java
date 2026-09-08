@@ -47,6 +47,21 @@ class PersistenceRecoveryTest {
     }
 
     @Test
+    void startsWithEmptyStateWhenPersistenceFilesAreMissing() throws Exception {
+        Path directory = Files.createTempDirectory("myredis-empty-recovery-");
+        ExpirationManager expiration = new ExpirationManager();
+        InMemoryStorageEngine storage = new InMemoryStorageEngine(expiration);
+        PersistenceManager persistence = new PersistenceManager(
+                directory.resolve("missing.aof"), directory.resolve("missing.snapshot"), storage);
+        CommandParser parser = new CommandParser(new CommandRegistry(), storage, expiration, persistence);
+
+        persistence.recover(parser);
+
+        assertEquals("(nil)", parser.parse("GET missing").executeWithoutPersistence().response());
+        persistence.close();
+    }
+
+    @Test
     void supportsEverySecondAndNeverFsyncPolicies() throws Exception {
         Path directory = Files.createTempDirectory("myredis-fsync-");
         try (AofWriter everySecond = new AofWriter(directory.resolve("every.aof"), FsyncPolicy.EVERY_SECOND);
