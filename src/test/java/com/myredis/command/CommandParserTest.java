@@ -54,6 +54,8 @@ class CommandParserTest {
         assertTrue(info.contains("command_latency_avg_us:"));
         assertTrue(info.contains("command_latency_max_us:"));
         assertTrue(info.contains("expired_keys:0"));
+        assertTrue(info.contains("aof_writes:0"));
+        assertTrue(info.contains("snapshots:0"));
         assertTrue(info.contains("command_ping:1"));
         assertTrue(info.contains("command_info:1"));
     }

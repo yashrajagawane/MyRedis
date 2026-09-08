@@ -14,6 +14,24 @@ import org.junit.jupiter.api.Test;
 
 class PersistenceRecoveryTest {
     @Test
+    void countsSuccessfulAofWritesAndSnapshots() throws Exception {
+        Path directory = Files.createTempDirectory("myredis-persistence-metrics-");
+        ExpirationManager expiration = new ExpirationManager();
+        InMemoryStorageEngine storage = new InMemoryStorageEngine(expiration);
+        PersistenceManager persistence = new PersistenceManager(
+                directory.resolve("myredis.aof"), directory.resolve("myredis.snapshot"), storage);
+        CommandParser parser = new CommandParser(new CommandRegistry(), storage, expiration, persistence);
+
+        parser.parse("SET key value").execute();
+        parser.parse("SET incomplete").execute();
+        persistence.snapshot();
+
+        assertEquals(1, persistence.aofWrites());
+        assertEquals(1, persistence.snapshots());
+        persistence.close();
+    }
+
+    @Test
     void supportsEverySecondAndNeverFsyncPolicies() throws Exception {
         Path directory = Files.createTempDirectory("myredis-fsync-");
         try (AofWriter everySecond = new AofWriter(directory.resolve("every.aof"), FsyncPolicy.EVERY_SECOND);

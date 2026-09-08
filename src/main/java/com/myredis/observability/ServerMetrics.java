@@ -44,10 +44,14 @@ public final class ServerMetrics {
     }
 
     public String info() {
-        return info(0);
+        return info(0, 0, 0);
     }
 
     public String info(long expiredKeys) {
+        return info(expiredKeys, 0, 0);
+    }
+
+    public String info(long expiredKeys, long aofWrites, long snapshots) {
         String commandCounts = commandsByName.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
                 .map(entry -> "command_" + entry.getKey().toLowerCase() + ":" + entry.getValue().sum())
@@ -60,6 +64,7 @@ public final class ServerMetrics {
                 + connectedClients.get() + "\r\n# Stats\r\ncommands_processed:"
                 + processed + "\r\ncommand_latency_avg_us:" + averageLatencyMicros
                 + "\r\ncommand_latency_max_us:" + maxLatencyMicros + "\r\nexpired_keys:" + expiredKeys
+                + "\r\naof_writes:" + aofWrites + "\r\nsnapshots:" + snapshots
                 + "\r\nkeyspace_hits:" + keyspaceHits.get()
                 + "\r\nkeyspace_misses:" + keyspaceMisses.get() + "\r\n" + commandCounts + "\r\n";
     }

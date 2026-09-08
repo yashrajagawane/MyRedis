@@ -7,7 +7,7 @@ MyRedis accepts the commands below through RESP2 arrays or the plain-text format
 | Command | Syntax | Result |
 | --- | --- | --- |
 | `PING` | `PING [message]` | `PONG`, or the supplied message |
-| `INFO` | `INFO` | Operational counters, command latency, expiration, and runtime diagnostics |
+| `INFO` | `INFO` | Operational counters, command latency, persistence, expiration, and runtime diagnostics |
 
 ## Strings and counters
 

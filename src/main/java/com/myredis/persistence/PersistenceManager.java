@@ -10,6 +10,7 @@ import java.util.function.Supplier;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,6 +21,8 @@ public final class PersistenceManager implements AutoCloseable {
     private final Path snapshotPath;
     private final InMemoryStorageEngine storage;
     private final ScheduledExecutorService snapshotExecutor;
+    private final AtomicLong aofWrites = new AtomicLong();
+    private final AtomicLong snapshots = new AtomicLong();
     private final ReentrantLock mutationLock = new ReentrantLock(true);
     private AofWriter aofWriter;
 
@@ -57,6 +60,7 @@ public final class PersistenceManager implements AutoCloseable {
         if (!enabled) return;
         try {
             aofWriter.append(command);
+            aofWrites.incrementAndGet();
         } catch (IOException exception) {
             throw new IllegalStateException("Could not append AOF command", exception);
         }
@@ -83,9 +87,18 @@ public final class PersistenceManager implements AutoCloseable {
         mutationLock.lock();
         try {
             new SnapshotWriter().write(snapshotPath, storage, aofWriter.size());
+            snapshots.incrementAndGet();
         } finally {
             mutationLock.unlock();
         }
+    }
+
+    public long aofWrites() {
+        return aofWrites.get();
+    }
+
+    public long snapshots() {
+        return snapshots.get();
     }
 
     @Override
