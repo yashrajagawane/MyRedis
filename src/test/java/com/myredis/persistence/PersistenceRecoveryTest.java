@@ -2,6 +2,7 @@ package com.myredis.persistence;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.myredis.command.CommandParser;
 import com.myredis.command.CommandRegistry;
@@ -177,6 +178,34 @@ class PersistenceRecoveryTest {
         recovered.recover(recoveredParser);
 
         assertEquals("4", recoveredParser.parse("GET counter").executeWithoutPersistence().response());
+        recovered.close();
+    }
+
+    @Test
+    void preservesCounterTtlDuringAofRecovery() throws Exception {
+        Path directory = Files.createTempDirectory("myredis-counter-ttl-");
+        Path aof = directory.resolve("myredis.aof");
+        Path snapshot = directory.resolve("myredis.snapshot");
+
+        ExpirationManager expiration = new ExpirationManager();
+        InMemoryStorageEngine storage = new InMemoryStorageEngine(expiration);
+        PersistenceManager writer = new PersistenceManager(aof, snapshot, storage);
+        CommandParser parser = new CommandParser(new CommandRegistry(), storage, expiration, writer);
+        parser.parse("SET counter 1 PX 5000").execute();
+        parser.parse("INCR counter").execute();
+        writer.close();
+        Files.deleteIfExists(snapshot);
+
+        ExpirationManager recoveredExpiration = new ExpirationManager();
+        InMemoryStorageEngine recoveredStorage = new InMemoryStorageEngine(recoveredExpiration);
+        PersistenceManager recovered = new PersistenceManager(aof, snapshot, recoveredStorage);
+        CommandParser recoveredParser = new CommandParser(
+                new CommandRegistry(), recoveredStorage, recoveredExpiration, recovered);
+        recovered.recover(recoveredParser);
+
+        assertEquals("2", recoveredParser.parse("GET counter").executeWithoutPersistence().response());
+        long ttl = Long.parseLong(recoveredParser.parse("TTL counter").executeWithoutPersistence().response());
+        assertTrue(ttl > 0 && ttl <= 5);
         recovered.close();
     }
 }
