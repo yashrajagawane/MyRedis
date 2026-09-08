@@ -51,6 +51,10 @@ public final class CommandParser {
         return parse(tokens);
     }
 
+    public ServerMetrics metrics() {
+        return metrics;
+    }
+
     public ParsedCommand parse(List<String> tokens) {
         if (tokens == null || tokens.isEmpty()) throw new CommandParseException("empty command");
         String name = tokens.getFirst().toUpperCase();

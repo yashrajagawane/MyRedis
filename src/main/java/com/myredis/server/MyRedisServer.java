@@ -115,6 +115,7 @@ public final class MyRedisServer {
                         client.close();
                         continue;
                     }
+                    commandParser.metrics().clientConnected();
                     clientExecutor.submit(new ClientHandler(client, connectionRegistry, commandParser,
                             maxValueBytes, maxArrayElements));
                     LOGGER.info("Client connected from {}", client.getRemoteSocketAddress());

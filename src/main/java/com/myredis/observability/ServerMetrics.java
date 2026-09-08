@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 /** Lightweight process-local counters for operational diagnostics. */
 public final class ServerMetrics {
     private final AtomicLong commandsProcessed = new AtomicLong();
+    private final AtomicLong connectedClients = new AtomicLong();
     private final Map<String, LongAdder> commandsByName = new ConcurrentHashMap<>();
 
     public void recordCommand(String command) {
@@ -16,12 +17,21 @@ public final class ServerMetrics {
         commandsByName.computeIfAbsent(command, ignored -> new LongAdder()).increment();
     }
 
+    public void clientConnected() {
+        connectedClients.incrementAndGet();
+    }
+
+    public void clientDisconnected() {
+        connectedClients.updateAndGet(current -> Math.max(0, current - 1));
+    }
+
     public String info() {
         String commandCounts = commandsByName.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
                 .map(entry -> "command_" + entry.getKey().toLowerCase() + ":" + entry.getValue().sum())
                 .collect(Collectors.joining("\r\n"));
-        return "# Server\r\nmyredis_runtime:java21\r\n# Stats\r\ncommands_processed:"
+        return "# Server\r\nmyredis_runtime:java21\r\n# Clients\r\nconnected_clients:"
+                + connectedClients.get() + "\r\n# Stats\r\ncommands_processed:"
                 + commandsProcessed.get() + "\r\n" + commandCounts + "\r\n";
     }
 }

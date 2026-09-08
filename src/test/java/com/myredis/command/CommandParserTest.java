@@ -44,6 +44,7 @@ class CommandParserTest {
         String info = parser.parse("INFO").execute().response();
 
         assertTrue(info.contains("# Stats"));
+        assertTrue(info.contains("connected_clients:0"));
         assertTrue(info.contains("commands_processed:2"));
         assertTrue(info.contains("command_ping:1"));
         assertTrue(info.contains("command_info:1"));

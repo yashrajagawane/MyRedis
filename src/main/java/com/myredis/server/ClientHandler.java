@@ -5,6 +5,7 @@ import com.myredis.command.CommandParser;
 import com.myredis.protocol.ProtocolException;
 import com.myredis.protocol.RespDecoder;
 import com.myredis.protocol.RespEncoder;
+import com.myredis.observability.ServerMetrics;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -21,20 +22,27 @@ public final class ClientHandler implements Runnable {
     private final CommandParser commandParser;
     private final int maxValueBytes;
     private final int maxArrayElements;
+    private final ServerMetrics metrics;
     private final RespEncoder respEncoder = new RespEncoder();
 
     public ClientHandler(Socket socket, ConnectionRegistry connectionRegistry, CommandParser commandParser) {
         this(socket, connectionRegistry, commandParser, RespDecoder.DEFAULT_MAX_VALUE_BYTES,
-                RespDecoder.DEFAULT_MAX_ARRAY_ELEMENTS);
+                RespDecoder.DEFAULT_MAX_ARRAY_ELEMENTS, commandParser.metrics());
     }
 
     public ClientHandler(Socket socket, ConnectionRegistry connectionRegistry, CommandParser commandParser,
                          int maxValueBytes, int maxArrayElements) {
+        this(socket, connectionRegistry, commandParser, maxValueBytes, maxArrayElements, commandParser.metrics());
+    }
+
+    public ClientHandler(Socket socket, ConnectionRegistry connectionRegistry, CommandParser commandParser,
+                         int maxValueBytes, int maxArrayElements, ServerMetrics metrics) {
         this.socket = socket;
         this.connectionRegistry = connectionRegistry;
         this.commandParser = commandParser;
         this.maxValueBytes = maxValueBytes;
         this.maxArrayElements = maxArrayElements;
+        this.metrics = metrics;
     }
 
     @Override
@@ -65,6 +73,7 @@ public final class ClientHandler implements Runnable {
             LOGGER.debug("Client connection closed with an I/O error", exception);
         } finally {
             connectionRegistry.unregister(socket);
+            metrics.clientDisconnected();
             LOGGER.info("Client disconnected");
         }
     }
