@@ -44,6 +44,10 @@ public final class ServerMetrics {
     }
 
     public String info() {
+        return info(0);
+    }
+
+    public String info(long expiredKeys) {
         String commandCounts = commandsByName.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
                 .map(entry -> "command_" + entry.getKey().toLowerCase() + ":" + entry.getValue().sum())
@@ -55,7 +59,8 @@ public final class ServerMetrics {
         return "# Server\r\nmyredis_runtime:java21\r\n# Clients\r\nconnected_clients:"
                 + connectedClients.get() + "\r\n# Stats\r\ncommands_processed:"
                 + processed + "\r\ncommand_latency_avg_us:" + averageLatencyMicros
-                + "\r\ncommand_latency_max_us:" + maxLatencyMicros + "\r\nkeyspace_hits:" + keyspaceHits.get()
+                + "\r\ncommand_latency_max_us:" + maxLatencyMicros + "\r\nexpired_keys:" + expiredKeys
+                + "\r\nkeyspace_hits:" + keyspaceHits.get()
                 + "\r\nkeyspace_misses:" + keyspaceMisses.get() + "\r\n" + commandCounts + "\r\n";
     }
 }

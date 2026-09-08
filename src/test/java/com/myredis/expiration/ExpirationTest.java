@@ -18,5 +18,6 @@ class ExpirationTest {
 
         assertTrue(storage.getString("key").isEmpty());
         assertEquals(-1, expiration.ttlSeconds("key").orElseThrow());
+        assertEquals(1, expiration.expiredKeys());
     }
 }

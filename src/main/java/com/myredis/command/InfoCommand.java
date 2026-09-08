@@ -6,6 +6,6 @@ public final class InfoCommand implements Command {
         if (!context.arguments().isEmpty()) {
             return CommandResult.error("wrong number of arguments for 'info' command");
         }
-        return new CommandResult(context.metrics().info());
+        return new CommandResult(context.metrics().info(context.expiration().expiredKeys()));
     }
 }
