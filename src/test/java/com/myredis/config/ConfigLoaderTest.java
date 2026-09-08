@@ -64,4 +64,18 @@ class ConfigLoaderTest {
                 () -> ConfigLoader.load(new String[]{"--config"}));
         assertTrue(error.getMessage().contains("--config requires a file path"));
     }
+
+    @Test
+    void rejectsUnknownOptionsInsteadOfSilentlyUsingDefaults() {
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> ConfigLoader.load(new String[]{"--prot", "6380"}));
+        assertTrue(error.getMessage().contains("unknown option: --prot"));
+    }
+
+    @Test
+    void rejectsKnownOptionsWithoutValues() {
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> ConfigLoader.load(new String[]{"--port"}));
+        assertTrue(error.getMessage().contains("--port requires a value"));
+    }
 }

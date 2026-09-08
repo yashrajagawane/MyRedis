@@ -70,9 +70,23 @@ public final class ConfigLoader {
 
     private static void validateArguments(String[] args) {
         for (int index = 0; index < args.length; index++) {
-            if (args[index].equals("--config") && index == args.length - 1) {
-                throw new IllegalArgumentException("--config requires a file path");
+            String argument = args[index];
+            if (!argument.startsWith("--")) {
+                throw new IllegalArgumentException("unexpected argument: " + argument);
             }
+            if (argument.equals("--config")) {
+                if (index == args.length - 1) throw new IllegalArgumentException("--config requires a file path");
+                index++;
+                continue;
+            }
+            if (index == args.length - 1) {
+                throw new IllegalArgumentException(argument + " requires a value");
+            }
+            String key = argument.substring(2).replace('-', '.');
+            if (!defaults().containsKey(key)) {
+                throw new IllegalArgumentException("unknown option: " + argument);
+            }
+            index++;
         }
     }
 
