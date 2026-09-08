@@ -9,7 +9,10 @@ WORKDIR /app
 COPY --from=build /build/target/myredis-0.1.0-SNAPSHOT.jar /app/myredis.jar
 COPY myredis.conf /app/myredis.conf
 COPY logback.xml /app/logback.xml
-RUN mkdir -p /app/data
+RUN mkdir -p /app/data \
+    && useradd --system --uid 10001 --home-dir /app --no-create-home myredis \
+    && chown -R myredis:myredis /app
 VOLUME ["/app/data"]
 EXPOSE 6379
+USER myredis
 ENTRYPOINT ["java", "-Dlogback.configurationFile=/app/logback.xml", "-jar", "/app/myredis.jar"]

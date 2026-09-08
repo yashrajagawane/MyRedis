@@ -29,5 +29,11 @@ jobs:
       - name: Build release JAR
         run: mvn --batch-mode package -DskipTests
 
+      - name: Validate release artifact
+        run: test -s target/myredis-0.1.0-SNAPSHOT.jar
+
       - name: Build Docker image
         run: docker build --tag myredis:ci .
+
+      - name: Validate Docker image
+        run: test "$(docker image inspect myredis:ci --format '{{.Id}}')" != ""
