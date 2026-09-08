@@ -27,7 +27,7 @@ Commands are available through RESP2 and the plain-text request format.
 | Sets | `SADD`, `SREM`, `SMEMBERS`, `SISMEMBER`, `SCARD` |
 | Hashes | `HSET`, `HGET`, `HDEL`, `HGETALL`, `HEXISTS` |
 | Sorted sets | `ZADD`, `ZRANGE`, `ZSCORE`, `ZREM`, `ZRANK` |
-| Expiration | `EXPIRE`, `TTL`, `PERSIST` |
+| Expiration | `EXPIRE`, `PEXPIRE`, `TTL`, `PERSIST` |
 
 `SET` supports `EX` and `PX` options. Numeric commands operate on signed 64-bit integers and reject non-numeric values and overflow. Commands are persisted only after successful mutation.
 
