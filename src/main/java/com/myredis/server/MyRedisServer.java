@@ -12,6 +12,7 @@ import java.net.Socket;
 import java.net.InetSocketAddress;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -129,7 +130,7 @@ public final class MyRedisServer {
             serverSocket = null;
             running.set(false);
             connectionRegistry.closeAll();
-            clientExecutor.shutdownNow();
+            shutdownClients();
             expirationScheduler.close();
             persistence.close();
             LOGGER.info("MyRedis stopped");
@@ -149,8 +150,20 @@ public final class MyRedisServer {
             }
         }
         connectionRegistry.closeAll();
-        clientExecutor.shutdownNow();
+        shutdownClients();
         expirationScheduler.close();
+    }
+
+    private void shutdownClients() {
+        clientExecutor.shutdownNow();
+        try {
+            if (!clientExecutor.awaitTermination(2, TimeUnit.SECONDS)) {
+                LOGGER.warn("Client handlers did not terminate before shutdown timeout");
+            }
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            LOGGER.warn("Interrupted while waiting for client handlers to terminate");
+        }
     }
 
     public int getPort() {
