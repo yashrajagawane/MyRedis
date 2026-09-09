@@ -32,11 +32,17 @@ one warmup iteration, and two one-second measurement iterations:
 | `StorageBenchmark.set` | 38.611 ops/us |
 | `StorageBenchmark.increment` | 14.281 ops/us |
 | `DatasetStorageBenchmark.getExistingKey` (100 keys) | 53.789 ops/us |
+| `DatasetStorageBenchmark.getExistingKey` (1,000 keys) | 68.703 ops/us |
+| `DatasetStorageBenchmark.getExistingKey` (10,000 keys) | 74.759 ops/us |
+| `DatasetStorageBenchmark.getExistingKey` (100,000 keys) | 78.525 ops/us |
 
 The counter benchmark also measured `0.067 us/op` average time, while the
 100-key dataset lookup measured `0.013 us/op` average time under the same
 settings. The runs used JMH 1.37 with compiler blackholes enabled and one
 thread on JDK 21.0.10.
+
+The 1,000-key and 10,000-key runs measured `0.015 us/op`; the 100,000-key
+run measured `0.014 us/op` average time.
 
 These numbers are environment-dependent and should only be compared with runs
 using the same JVM, hardware, benchmark settings, and JMH version.
