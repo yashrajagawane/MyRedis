@@ -77,6 +77,7 @@ flowchart LR
 ```
 
 See [Architecture.md](Architecture.md), [Design.md](Design.md), [PRD.md](PRD.md), and [Phases.md](Phases.md) for detailed requirements and design decisions. Benchmark results are documented in [BENCHMARKS.md](BENCHMARKS.md).
+The current implementation architecture is summarized in [docs/architecture.md](docs/architecture.md).
 
 See [COMMANDS.md](COMMANDS.md) for syntax, return values, and current compatibility limitations.
 See [docs/benchmarking.md](docs/benchmarking.md) for benchmark methodology and reproducibility notes.
