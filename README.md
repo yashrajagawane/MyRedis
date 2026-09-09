@@ -81,6 +81,7 @@ The current implementation architecture is summarized in [docs/architecture.md](
 RESP2 framing and compatibility boundaries are documented in [docs/protocol.md](docs/protocol.md).
 Configuration precedence, settings, and validation are documented in [docs/configuration.md](docs/configuration.md).
 Persistence guarantees, recovery order, and fsync behavior are documented in [docs/persistence.md](docs/persistence.md).
+Concurrency ownership, ordering, and limitations are documented in [docs/concurrency.md](docs/concurrency.md).
 
 See [COMMANDS.md](COMMANDS.md) for syntax, return values, and current compatibility limitations.
 See [docs/benchmarking.md](docs/benchmarking.md) for benchmark methodology and reproducibility notes.
