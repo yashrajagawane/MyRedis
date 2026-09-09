@@ -21,6 +21,10 @@ java -cp "target/test-classes;<maven-dependency-classpath>" com.myredis.benchmar
 dataset size; no dataset-size result is claimed until it has been run on the
 target hardware.
 
+`ConcurrentStorageBenchmark` measures atomic increments with 1, 10, and 100
+JMH threads sharing one counter. It is a direct in-memory concurrency benchmark,
+not an end-to-end network measurement.
+
 ## Baseline
 
 Collected on 2026-09-07 with JDK 21.0.10, OpenJDK 64-Bit Server VM, one fork,
@@ -50,6 +54,17 @@ run measured `0.014 us/op` average time.
 
 The set benchmarks measured `0.037`, `0.035`, `0.036`, and `0.037 us/op` for
 100, 1,000, 10,000, and 100,000 keys respectively.
+
+The shared-counter concurrency benchmark measured:
+
+| Benchmark | Throughput | Average time |
+| --- | ---: | ---: |
+| `incrementOneClient` (1 thread) | 10.760 ops/us | 0.081 us/op |
+| `incrementTenClients` (10 threads) | 6.142 ops/us | 1.282 us/op |
+| `incrementOneHundredClients` (100 threads) | 2.844 ops/us | 40.793 us/op |
+
+These concurrency results measure the in-memory storage engine only; they do
+not include TCP, RESP decoding, command parsing, or persistence overhead.
 
 These numbers are environment-dependent and should only be compared with runs
 using the same JVM, hardware, benchmark settings, and JMH version.
