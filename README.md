@@ -86,6 +86,7 @@ Deployment protections and known security limitations are documented in [docs/se
 Test layers, verification commands, and current coverage limitations are documented in [docs/testing.md](docs/testing.md).
 Typed values, atomic counters, expiration, and snapshot representation are documented in [docs/storage-engine.md](docs/storage-engine.md).
 TTL semantics, lazy cleanup, active expiration, and persistence interaction are documented in [docs/expiration.md](docs/expiration.md).
+TCP ownership, client lifecycle, protocol boundaries, and shutdown are documented in [docs/networking.md](docs/networking.md).
 
 See [COMMANDS.md](COMMANDS.md) for syntax, return values, and current compatibility limitations.
 See [docs/benchmarking.md](docs/benchmarking.md) for benchmark methodology and reproducibility notes.
