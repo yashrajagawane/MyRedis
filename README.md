@@ -84,6 +84,7 @@ Persistence guarantees, recovery order, and fsync behavior are documented in [do
 Concurrency ownership, ordering, and limitations are documented in [docs/concurrency.md](docs/concurrency.md).
 Deployment protections and known security limitations are documented in [docs/security.md](docs/security.md).
 Test layers, verification commands, and current coverage limitations are documented in [docs/testing.md](docs/testing.md).
+Typed values, atomic counters, expiration, and snapshot representation are documented in [docs/storage-engine.md](docs/storage-engine.md).
 
 See [COMMANDS.md](COMMANDS.md) for syntax, return values, and current compatibility limitations.
 See [docs/benchmarking.md](docs/benchmarking.md) for benchmark methodology and reproducibility notes.
