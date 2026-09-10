@@ -38,6 +38,12 @@ jobs:
       - name: Validate Docker image
         run: test "$(docker image inspect myredis:ci --format '{{.Id}}')" != ""
 
+      - name: Validate Docker runtime hardening
+        run: |
+          test "$(docker image inspect myredis:ci --format '{{.Config.User}}')" = "myredis"
+          test "$(docker image inspect myredis:ci --format '{{.Config.StopSignal}}')" = "SIGTERM"
+          docker image inspect myredis:ci --format '{{json .Config.Entrypoint}}' | grep -F 'MaxRAMPercentage=75.0'
+
       - name: Smoke test Docker container
         run: |
           docker run --detach --name myredis-ci --publish 6380:6379 myredis:ci
