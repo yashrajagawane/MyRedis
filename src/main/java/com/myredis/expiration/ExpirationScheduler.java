@@ -17,5 +17,12 @@ public final class ExpirationScheduler implements AutoCloseable {
     @Override
     public void close() {
         executor.shutdownNow();
+        try {
+            if (!executor.awaitTermination(2, TimeUnit.SECONDS)) {
+                throw new IllegalStateException("expiration scheduler did not terminate");
+            }
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+        }
     }
 }
