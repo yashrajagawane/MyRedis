@@ -34,6 +34,17 @@ class RespProtocolTest {
     }
 
     @Test
+    void encodesUtf8BulkAndArrayValuesUsingByteLengths() {
+        RespEncoder encoder = new RespEncoder();
+
+        assertEquals("$18\r\nनमस्ते\r\n", new String(
+                encoder.encode(new CommandResult("नमस्ते"), "GET"), StandardCharsets.UTF_8));
+        assertEquals("*2\r\n$6\r\n你好\r\n$6\r\n世界\r\n", new String(
+                encoder.encode(CommandResult.array(List.of("你好", "世界")), "LRANGE"),
+                StandardCharsets.UTF_8));
+    }
+
+    @Test
     void rejectsRequestsAboveConfiguredLimits() {
         byte[] largeBulk = "*1\r\n$5\r\nhello\r\n".getBytes(StandardCharsets.UTF_8);
         assertThrows(ProtocolException.class, () -> new RespDecoder(
