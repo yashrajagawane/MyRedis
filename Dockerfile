@@ -4,7 +4,7 @@ COPY pom.xml .
 COPY src ./src
 RUN mvn -q -DskipTests package
 
-FROM eclipse-temurin:21-jre
+FROM eclipse-temurin:25-jre
 WORKDIR /app
 COPY --from=build /build/target/myredis-0.1.0-SNAPSHOT.jar /app/myredis.jar
 COPY myredis.conf /app/myredis.conf
