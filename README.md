@@ -89,6 +89,7 @@ TTL semantics, lazy cleanup, active expiration, and persistence interaction are 
 TCP ownership, client lifecycle, protocol boundaries, and shutdown are documented in [docs/networking.md](docs/networking.md).
 The rationale for major implementation choices is documented in [docs/design-decisions.md](docs/design-decisions.md).
 Supported commands, RESP2 coverage, and compatibility boundaries are documented in [docs/compatibility.md](docs/compatibility.md).
+Runtime counters, logging, and observability limitations are documented in [docs/observability.md](docs/observability.md).
 
 See [COMMANDS.md](COMMANDS.md) for syntax, return values, and current compatibility limitations.
 See [docs/benchmarking.md](docs/benchmarking.md) for benchmark methodology and reproducibility notes.
