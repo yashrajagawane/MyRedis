@@ -43,4 +43,26 @@ class RespProtocolTest {
         assertThrows(ProtocolException.class, () -> new RespDecoder(
                 new ByteArrayInputStream(largeArray), 16, 1).readCommand());
     }
+
+    @Test
+    void rejectsMalformedRespMetadataAsProtocolErrors() {
+        byte[] invalidArrayLength = "*not-a-number\r\n".getBytes(StandardCharsets.UTF_8);
+        assertThrows(ProtocolException.class, () -> new RespDecoder(
+                new ByteArrayInputStream(invalidArrayLength)).readCommand());
+
+        byte[] negativeBulkLength = "*1\r\n$-1\r\n".getBytes(StandardCharsets.UTF_8);
+        assertThrows(ProtocolException.class, () -> new RespDecoder(
+                new ByteArrayInputStream(negativeBulkLength)).readCommand());
+    }
+
+    @Test
+    void rejectsNullAndIncompleteBulkArguments() {
+        byte[] nullArgument = "*1\r\n$-1\r\n".getBytes(StandardCharsets.UTF_8);
+        assertThrows(ProtocolException.class, () -> new RespDecoder(
+                new ByteArrayInputStream(nullArgument)).readCommand());
+
+        byte[] incompleteArgument = "*1\r\n$4\r\nGET\r\n".getBytes(StandardCharsets.UTF_8);
+        assertThrows(ProtocolException.class, () -> new RespDecoder(
+                new ByteArrayInputStream(incompleteArgument)).readCommand());
+    }
 }

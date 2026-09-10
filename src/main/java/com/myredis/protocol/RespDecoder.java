@@ -42,13 +42,13 @@ public final class RespDecoder {
     }
 
     private List<String> readCommandBody() throws IOException {
-        int count = Integer.parseInt(readLine());
+        int count = parseProtocolInteger(readLine(), "invalid RESP array length");
         if (count < 1) throw new ProtocolException("command array cannot be empty");
         if (count > maxArrayElements) throw new ProtocolException("command array is too large");
         List<String> command = new ArrayList<>(count);
         for (int index = 0; index < count; index++) {
             if (input.read() != '$') throw new ProtocolException("command arguments must be bulk strings");
-            int length = Integer.parseInt(readLine());
+            int length = parseProtocolInteger(readLine(), "invalid RESP bulk length");
             if (length < 0) throw new ProtocolException("null command argument");
             if (length > maxValueBytes) throw new ProtocolException("bulk string is too large");
             byte[] bytes = input.readNBytes(length);
@@ -86,5 +86,13 @@ public final class RespDecoder {
             if (bytes.size() > MAX_PROTOCOL_LINE_BYTES) throw new ProtocolException("RESP line is too long");
         }
         throw new ProtocolException("unexpected end of RESP input");
+    }
+
+    private static int parseProtocolInteger(String value, String message) {
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException exception) {
+            throw new ProtocolException(message);
+        }
     }
 }
