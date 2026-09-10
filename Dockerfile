@@ -15,6 +15,7 @@ RUN mkdir -p /app/data \
 VOLUME ["/app/data"]
 EXPOSE 6379
 USER myredis
+STOPSIGNAL SIGTERM
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD ["java", "-cp", "/app/myredis.jar", "com.myredis.HealthCheck"]
-ENTRYPOINT ["java", "-Dlogback.configurationFile=/app/logback.xml", "-jar", "/app/myredis.jar"]
+ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75.0", "-XX:+ExitOnOutOfMemoryError", "-Dlogback.configurationFile=/app/logback.xml", "-jar", "/app/myredis.jar"]

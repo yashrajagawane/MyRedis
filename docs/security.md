@@ -16,6 +16,8 @@ network boundary.
 - Persistence writes use configured filesystem paths and atomic snapshot
   replacement where supported.
 - The Docker image runs the server as the non-root `myredis` user.
+- The Docker image declares SIGTERM as its stop signal and uses container-aware
+  JVM memory sizing.
 - Docker persistence is isolated under the `/app/data` volume.
 
 ## Deployment guidance
