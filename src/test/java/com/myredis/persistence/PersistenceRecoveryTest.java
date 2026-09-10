@@ -1,6 +1,7 @@
 package com.myredis.persistence;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -44,6 +45,7 @@ class PersistenceRecoveryTest {
         assertThrows(java.io.IOException.class, persistence::snapshot);
         assertEquals(1, persistence.persistenceErrors());
         persistence.close();
+        assertDoesNotThrow(() -> Files.delete(directory.resolve("myredis.aof")));
     }
 
     @Test

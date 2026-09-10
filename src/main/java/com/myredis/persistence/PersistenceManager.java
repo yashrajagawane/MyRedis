@@ -118,12 +118,17 @@ public final class PersistenceManager implements AutoCloseable {
     @Override
     public synchronized void close() {
         if (!enabled) return;
+        snapshotExecutor.shutdownNow();
         try {
-            snapshotExecutor.shutdownNow();
             snapshot();
-            aofWriter.close();
         } catch (IOException exception) {
-            LOGGER.error("Could not close persistence cleanly", exception);
+            LOGGER.error("Could not write final snapshot during shutdown", exception);
+        } finally {
+            try {
+                aofWriter.close();
+            } catch (IOException exception) {
+                LOGGER.error("Could not close AOF cleanly", exception);
+            }
         }
     }
 
