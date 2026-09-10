@@ -2,6 +2,7 @@ package com.myredis.command;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import com.myredis.storage.StorageEngine;
 import com.myredis.storage.InMemoryStorageEngine;
 import com.myredis.expiration.ExpirationManager;
@@ -57,7 +58,7 @@ public final class CommandParser {
 
     public ParsedCommand parse(List<String> tokens) {
         if (tokens == null || tokens.isEmpty()) throw new CommandParseException("empty command");
-        String name = tokens.getFirst().toUpperCase();
+        String name = tokens.getFirst().toUpperCase(Locale.ROOT);
         Command command = registry.find(name)
                 .orElseThrow(() -> new CommandParseException(
                         "unknown command '" + tokens.getFirst() + "'"));

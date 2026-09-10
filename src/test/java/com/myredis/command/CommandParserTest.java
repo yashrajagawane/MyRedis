@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Locale;
 import org.junit.jupiter.api.Test;
 import com.myredis.storage.InMemoryStorageEngine;
 
@@ -150,5 +151,17 @@ class CommandParserTest {
     void rejectsBlankAndUnknownCommands() {
         assertThrows(CommandParseException.class, () -> parser.parse("  "));
         assertThrows(CommandParseException.class, () -> parser.parse("NOPE"));
+    }
+
+    @Test
+    void normalizesCommandsIndependentlyOfDefaultLocale() {
+        Locale previous = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+            assertEquals("PONG", parser.parse("ping").execute().response());
+            assertTrue(parser.parse("INFO").execute().response().contains("command_info:1"));
+        } finally {
+            Locale.setDefault(previous);
+        }
     }
 }

@@ -1,6 +1,7 @@
 package com.myredis.observability;
 
 import java.util.Map;
+import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
@@ -58,7 +59,7 @@ public final class ServerMetrics {
     public String info(long expiredKeys, long aofWrites, long snapshots, long persistenceErrors) {
         String commandCounts = commandsByName.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
-                .map(entry -> "command_" + entry.getKey().toLowerCase() + ":" + entry.getValue().sum())
+                .map(entry -> "command_" + entry.getKey().toLowerCase(Locale.ROOT) + ":" + entry.getValue().sum())
                 .collect(Collectors.joining("\r\n"));
         long processed = commandsProcessed.get();
         long averageLatencyMicros = processed == 0

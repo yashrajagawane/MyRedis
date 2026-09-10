@@ -3,6 +3,7 @@ package com.myredis.command;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Locale;
 import java.util.function.Supplier;
 
 /** Maps command names to factories so new commands can be registered additively. */
@@ -50,7 +51,7 @@ public final class CommandRegistry {
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("command name cannot be blank");
         }
-        factories.put(name.toUpperCase(), factory);
+        factories.put(name.toUpperCase(Locale.ROOT), factory);
     }
 
     Optional<Command> find(String name) {
