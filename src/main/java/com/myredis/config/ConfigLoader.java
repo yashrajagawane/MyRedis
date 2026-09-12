@@ -26,13 +26,14 @@ public final class ConfigLoader {
         applyEnvironment(values, System.getenv());
         applyArguments(values, args);
         try {
-            return new ServerConfig(values.getProperty("host"), Integer.parseInt(values.getProperty("port")),
-                    parseBoolean(values, "aof.enabled"), Path.of(values.getProperty("aof.path")),
-                    Path.of(values.getProperty("snapshot.path")), parseFsyncPolicy(values),
-                    Long.parseLong(values.getProperty("snapshot.interval.seconds")), values.getProperty("log.level"),
-                    Integer.parseInt(values.getProperty("limits.max.value.bytes")),
-                    Integer.parseInt(values.getProperty("limits.max.array.elements")),
-                    Integer.parseInt(values.getProperty("limits.max.connections")));
+            return new ServerConfig(requiredProperty(values, "host"), Integer.parseInt(requiredProperty(values, "port")),
+                    parseBoolean(values, "aof.enabled"), parsePath(values, "aof.path"),
+                    parsePath(values, "snapshot.path"), parseFsyncPolicy(values),
+                    Long.parseLong(requiredProperty(values, "snapshot.interval.seconds")),
+                    requiredProperty(values, "log.level"),
+                    Integer.parseInt(requiredProperty(values, "limits.max.value.bytes")),
+                    Integer.parseInt(requiredProperty(values, "limits.max.array.elements")),
+                    Integer.parseInt(requiredProperty(values, "limits.max.connections")));
         } catch (IllegalArgumentException exception) {
             throw new IllegalArgumentException("Invalid MyRedis configuration: " + exception.getMessage(), exception);
         }
@@ -110,19 +111,34 @@ public final class ConfigLoader {
     }
 
     private static boolean parseBoolean(Properties values, String key) {
-        String value = values.getProperty(key);
+        String value = requiredProperty(values, key);
         if ("true".equalsIgnoreCase(value)) return true;
         if ("false".equalsIgnoreCase(value)) return false;
         throw new IllegalArgumentException(key + " must be true or false");
     }
 
     private static FsyncPolicy parseFsyncPolicy(Properties values) {
-        String value = values.getProperty("aof.fsync");
+        String value = requiredProperty(values, "aof.fsync");
         try {
             return FsyncPolicy.valueOf(value.toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException exception) {
             throw new IllegalArgumentException("aof.fsync must be ALWAYS, EVERY_SECOND, or NEVER", exception);
         }
+    }
+
+    private static Path parsePath(Properties values, String key) {
+        String value = requiredProperty(values, key);
+        try {
+            return Path.of(value);
+        } catch (IllegalArgumentException exception) {
+            throw new IllegalArgumentException(key + " must be a valid filesystem path", exception);
+        }
+    }
+
+    private static String requiredProperty(Properties values, String key) {
+        String value = values.getProperty(key);
+        if (value == null || value.isBlank()) throw new IllegalArgumentException(key + " must not be blank");
+        return value;
     }
 
     private static void applyArguments(Properties values, String[] args) {
