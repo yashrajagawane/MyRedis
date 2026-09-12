@@ -12,7 +12,7 @@ mvn package
 java -jar target/myredis-0.1.0-SNAPSHOT.jar
 ```
 
-The server listens on `0.0.0.0:6379` and stores persistence data under `data/`. Use `redis-cli -p 6379` or send plain commands such as `SET key value` and `GET key`.
+The server listens on `127.0.0.1:6379` by default and stores persistence data under `data/`. Use `redis-cli -p 6379` or send plain commands such as `SET key value` and `GET key`. The Docker image uses its dedicated `docker-myredis.conf` binding of `0.0.0.0` for published container ports.
 
 ## Supported commands
 

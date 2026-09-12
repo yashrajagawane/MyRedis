@@ -17,7 +17,7 @@ server starts.
 
 | Setting | Default | Environment variable | Purpose |
 | --- | --- | --- | --- |
-| `host` | `0.0.0.0` | `MYREDIS_HOST` | Bind address |
+| `host` | `127.0.0.1` | `MYREDIS_HOST` | Bind address; Docker uses `docker-myredis.conf` with `0.0.0.0` |
 | `port` | `6379` | `MYREDIS_PORT` | TCP port; `0` selects an ephemeral port for tests |
 | `aof.enabled` | `true` | `MYREDIS_AOF_ENABLED` | Enable AOF and snapshot persistence |
 | `aof.path` | `data/myredis.aof` | `MYREDIS_AOF_PATH` | AOF file path |
