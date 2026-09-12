@@ -40,7 +40,7 @@ public final class ConfigLoader {
 
     static Properties defaults() {
         Properties values = new Properties();
-        values.setProperty("host", "0.0.0.0");
+        values.setProperty("host", "127.0.0.1");
         values.setProperty("port", "6379");
         values.setProperty("aof.enabled", "true");
         values.setProperty("aof.path", "data/myredis.aof");

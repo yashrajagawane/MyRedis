@@ -36,7 +36,7 @@ public final class MyRedisServer {
     private volatile ServerSocket serverSocket;
 
     public MyRedisServer(int port) {
-        this("0.0.0.0", port);
+        this("127.0.0.1", port);
     }
 
     public MyRedisServer(String host, int port) {
@@ -65,7 +65,7 @@ public final class MyRedisServer {
 
     public MyRedisServer(int port, InMemoryStorageEngine storage, CommandParser commandParser,
                          ExpirationManager expiration, PersistenceManager persistence) {
-        this("0.0.0.0", port, storage, commandParser, expiration, persistence);
+        this("127.0.0.1", port, storage, commandParser, expiration, persistence);
     }
 
     public MyRedisServer(String host, int port, InMemoryStorageEngine storage, CommandParser commandParser,

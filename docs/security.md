@@ -22,10 +22,12 @@ network boundary.
 
 ## Deployment guidance
 
-The default bind address is `0.0.0.0`, which exposes the listener on all
-interfaces. Set `host=127.0.0.1` for local-only operation, or restrict access
-with a firewall, private network, or authenticated proxy. Do not expose the
-default unauthenticated server directly to the public internet.
+The default programmatic bind address is `127.0.0.1`, which limits local
+startup to the loopback interface. The checked-in `myredis.conf` used by the
+Docker image explicitly sets `host=0.0.0.0` so published container ports remain
+reachable; use firewall rules, private networking, or an authenticated proxy
+before exposing that deployment. Do not expose the unauthenticated server
+directly to the public internet.
 
 Choose persistence paths owned by the service account and restrict filesystem
 permissions. Avoid placing AOF or snapshot files in directories shared with

@@ -27,6 +27,11 @@ class ConfigLoaderTest {
     }
 
     @Test
+    void defaultsToLoopbackBindingForSafeLocalStartup() throws Exception {
+        assertEquals("127.0.0.1", ConfigLoader.defaults().getProperty("host"));
+    }
+
+    @Test
     void rejectsInvalidBooleanValuesInsteadOfSilentlyDisablingAof() throws Exception {
         Path config = Files.createTempFile("myredis", ".conf");
         Files.writeString(config, "aof.enabled=treu\n");
