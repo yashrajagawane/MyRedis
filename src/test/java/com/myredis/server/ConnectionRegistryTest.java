@@ -23,4 +23,19 @@ class ConnectionRegistryTest {
             registry.closeAll();
         }
     }
+
+    @Test
+    void rejectsRegistrationsAfterShutdownUntilReopened() throws Exception {
+        ConnectionRegistry registry = new ConnectionRegistry(1);
+        Socket socket = new Socket();
+        try {
+            registry.closeAll();
+            assertFalse(registry.register(socket));
+            registry.open();
+            assertTrue(registry.register(socket));
+        } finally {
+            socket.close();
+            registry.closeAll();
+        }
+    }
 }

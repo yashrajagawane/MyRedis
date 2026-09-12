@@ -12,6 +12,7 @@ public final class ConnectionRegistry {
     private static final Logger LOGGER = LoggerFactory.getLogger(ConnectionRegistry.class);
     private final Set<Socket> sockets = ConcurrentHashMap.newKeySet();
     private final int maxConnections;
+    private boolean accepting = true;
 
     public ConnectionRegistry(int maxConnections) {
         if (maxConnections < 1) throw new IllegalArgumentException("max connections must be positive");
@@ -19,16 +20,21 @@ public final class ConnectionRegistry {
     }
 
     public synchronized boolean register(Socket socket) {
-        if (sockets.size() >= maxConnections) return false;
+        if (!accepting || sockets.size() >= maxConnections) return false;
         return sockets.add(socket);
     }
     public void unregister(Socket socket) { sockets.remove(socket); }
 
-    public void closeAll() {
+    public synchronized void closeAll() {
+        accepting = false;
         for (Socket socket : sockets) {
             try { socket.close(); }
             catch (IOException exception) { LOGGER.debug("Could not close client socket", exception); }
         }
         sockets.clear();
+    }
+
+    public synchronized void open() {
+        accepting = true;
     }
 }
