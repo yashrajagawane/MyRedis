@@ -115,6 +115,67 @@ class PersistenceRecoveryTest {
     }
 
     @Test
+    void rejectsSemanticallyInvalidAofCommandInsteadOfSilentlyReplayingIt() throws Exception {
+        Path directory = Files.createTempDirectory("myredis-aof-invalid-command-");
+        Path aof = directory.resolve("myredis.aof");
+        Path snapshot = directory.resolve("myredis.snapshot");
+        String invalid = java.util.Base64.getEncoder().encodeToString("SET".getBytes()) + " "
+                + java.util.Base64.getEncoder().encodeToString("only-key".getBytes()) + "\n";
+        String valid = java.util.Base64.getEncoder().encodeToString("SET".getBytes()) + " "
+                + java.util.Base64.getEncoder().encodeToString("key".getBytes()) + " "
+                + java.util.Base64.getEncoder().encodeToString("value".getBytes()) + "\n";
+        Files.writeString(aof, invalid + valid);
+
+        ExpirationManager expiration = new ExpirationManager();
+        InMemoryStorageEngine storage = new InMemoryStorageEngine(expiration);
+        PersistenceManager persistence = new PersistenceManager(aof, snapshot, storage);
+        CommandParser parser = new CommandParser(new CommandRegistry(), storage, expiration, persistence);
+
+        assertThrows(java.io.IOException.class, () -> persistence.recover(parser));
+        assertEquals(1, persistence.persistenceErrors());
+        persistence.close();
+    }
+
+    @Test
+    void rejectsSemanticallyInvalidFinalAofCommand() throws Exception {
+        Path directory = Files.createTempDirectory("myredis-aof-final-invalid-command-");
+        Path aof = directory.resolve("myredis.aof");
+        Path snapshot = directory.resolve("myredis.snapshot");
+        String invalid = java.util.Base64.getEncoder().encodeToString("SET".getBytes()) + " "
+                + java.util.Base64.getEncoder().encodeToString("only-key".getBytes()) + "\n";
+        Files.writeString(aof, invalid);
+
+        ExpirationManager expiration = new ExpirationManager();
+        InMemoryStorageEngine storage = new InMemoryStorageEngine(expiration);
+        PersistenceManager persistence = new PersistenceManager(aof, snapshot, storage);
+        CommandParser parser = new CommandParser(new CommandRegistry(), storage, expiration, persistence);
+
+        assertThrows(java.io.IOException.class, () -> persistence.recover(parser));
+        assertEquals(1, persistence.persistenceErrors());
+        persistence.close();
+    }
+
+    @Test
+    void rejectsSemanticallyInvalidSnapshotCommand() throws Exception {
+        Path directory = Files.createTempDirectory("myredis-snapshot-invalid-command-");
+        Path aof = directory.resolve("myredis.aof");
+        Path snapshot = directory.resolve("myredis.snapshot");
+        String invalid = java.util.Base64.getEncoder().encodeToString("SET".getBytes()) + " "
+                + java.util.Base64.getEncoder().encodeToString("only-key".getBytes()) + "\n";
+        Files.writeString(snapshot, SnapshotWriter.VERSION + "\nAOF_OFFSET 0\n" + invalid);
+        Files.writeString(aof, "");
+
+        ExpirationManager expiration = new ExpirationManager();
+        InMemoryStorageEngine storage = new InMemoryStorageEngine(expiration);
+        PersistenceManager persistence = new PersistenceManager(aof, snapshot, storage);
+        CommandParser parser = new CommandParser(new CommandRegistry(), storage, expiration, persistence);
+
+        assertThrows(java.io.IOException.class, () -> persistence.recover(parser));
+        assertEquals(1, persistence.persistenceErrors());
+        persistence.close();
+    }
+
+    @Test
     void rejectsSnapshotWithOffsetBeyondCurrentAof() throws Exception {
         Path directory = Files.createTempDirectory("myredis-snapshot-offset-");
         Path aof = directory.resolve("myredis.aof");
