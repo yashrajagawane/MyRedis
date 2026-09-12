@@ -27,9 +27,17 @@ public final class SnapshotLoader {
         if (offset < 0) {
             throw new IOException("Invalid snapshot AOF offset");
         }
-        for (String line : lines.subList(2, lines.size())) {
-            if (!line.isBlank()) {
-                parser.parse(PersistenceCodec.decode(line)).executeWithoutPersistence();
+        for (int index = 2; index < lines.size(); index++) {
+            String line = lines.get(index);
+            if (line.isBlank()) continue;
+            try {
+                var result = parser.parse(PersistenceCodec.decode(line)).executeWithoutPersistence();
+                if (result.response().startsWith("-ERR")) {
+                    throw new IllegalArgumentException("snapshot command returned an error: "
+                            + result.response());
+                }
+            } catch (RuntimeException exception) {
+                throw new IOException("Could not load snapshot command at line " + (index + 1), exception);
             }
         }
         return offset;

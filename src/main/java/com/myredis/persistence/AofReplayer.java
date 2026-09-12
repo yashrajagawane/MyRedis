@@ -26,10 +26,14 @@ public final class AofReplayer {
                 try {
                     List<String> arguments = PersistenceCodec.decode(
                             new String(line.getBytes(StandardCharsets.ISO_8859_1), StandardCharsets.US_ASCII));
-                    parser.parse(arguments).executeWithoutPersistence();
+                    var result = parser.parse(arguments).executeWithoutPersistence();
+                    if (result.response().startsWith("-ERR")) {
+                        throw new IllegalArgumentException("replayed command returned an error: "
+                                + result.response());
+                    }
                     replayed++;
                 } catch (IllegalArgumentException | CommandParseException exception) {
-                    if (file.getFilePointer() >= fileSize) {
+                    if (file.getFilePointer() >= fileSize && !hasRecordTerminator(file, recordStart)) {
                         file.setLength(recordStart);
                         return replayed;
                     }
@@ -38,5 +42,14 @@ public final class AofReplayer {
             }
         }
         return replayed;
+    }
+
+    private boolean hasRecordTerminator(RandomAccessFile file, long recordStart) throws IOException {
+        long end = file.getFilePointer();
+        if (end <= recordStart) return false;
+        file.seek(end - 1);
+        int lastByte = file.read();
+        file.seek(end);
+        return lastByte == '\n' || lastByte == '\r';
     }
 }
