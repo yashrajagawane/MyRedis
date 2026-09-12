@@ -58,8 +58,9 @@ must be positive, snapshot intervals cannot be negative, booleans must be
 `true` or `false`, and enum-like values are checked against their supported
 sets. Unknown CLI options and missing option values are rejected.
 
-Persistence paths are passed to Java NIO and parent directories are created by
-the persistence writers when needed. Operators should still choose paths with
+Persistence paths must be non-blank and valid Java NIO filesystem paths. They
+are passed to Java NIO and parent directories are created by the persistence
+writers when needed. Operators should still choose paths with
 appropriate ownership and permissions; MyRedis does not provide path sandboxing
 or authentication.
 

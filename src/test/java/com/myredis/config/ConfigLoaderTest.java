@@ -64,6 +64,17 @@ class ConfigLoaderTest {
     }
 
     @Test
+    void rejectsBlankPersistencePathsBeforeStartup() throws Exception {
+        Path config = Files.createTempFile("myredis", ".conf");
+        Files.writeString(config, "aof.path=   \n");
+
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> ConfigLoader.load(new String[]{"--config", config.toString()}));
+        assertTrue(error.getMessage().contains("aof.path must not be blank"));
+        Files.deleteIfExists(config);
+    }
+
+    @Test
     void rejectsConfigFlagWithoutAPath() {
         IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
                 () -> ConfigLoader.load(new String[]{"--config"}));
