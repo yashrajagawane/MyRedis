@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.myredis.command.CommandResult;
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -16,6 +18,25 @@ class RespProtocolTest {
 
         assertEquals(List.of("SET", "key", "value"),
                 new RespDecoder(new ByteArrayInputStream(request)).readCommand());
+    }
+
+    @Test
+    void decodesPipelinedCommandsAcrossFragmentedReads() throws Exception {
+        byte[] request = ("*1\r\n$4\r\nPING\r\n"
+                + "*2\r\n$3\r\nGET\r\n$3\r\nkey\r\n").getBytes(StandardCharsets.UTF_8);
+        RespDecoder decoder = new RespDecoder(new FragmentedInputStream(request, 2));
+
+        assertEquals(List.of("PING"), decoder.readCommand());
+        assertEquals(List.of("GET", "key"), decoder.readCommand());
+        assertEquals(null, decoder.readCommand());
+    }
+
+    @Test
+    void rejectsNonBulkElementsAsProtocolErrors() {
+        byte[] request = ("*1\r\n+PING\r\n*1\r\n$4\r\nPING\r\n").getBytes(StandardCharsets.UTF_8);
+
+        assertThrows(ProtocolException.class, () -> new RespDecoder(
+                new ByteArrayInputStream(request)).readCommand());
     }
 
     @Test
@@ -75,5 +96,30 @@ class RespProtocolTest {
         byte[] incompleteArgument = "*1\r\n$4\r\nGET\r\n".getBytes(StandardCharsets.UTF_8);
         assertThrows(ProtocolException.class, () -> new RespDecoder(
                 new ByteArrayInputStream(incompleteArgument)).readCommand());
+    }
+
+    private static final class FragmentedInputStream extends InputStream {
+        private final byte[] data;
+        private final int chunkSize;
+        private int offset;
+
+        private FragmentedInputStream(byte[] data, int chunkSize) {
+            this.data = data;
+            this.chunkSize = chunkSize;
+        }
+
+        @Override
+        public int read() {
+            return offset < data.length ? data[offset++] & 0xff : -1;
+        }
+
+        @Override
+        public int read(byte[] target, int targetOffset, int length) throws IOException {
+            if (offset >= data.length) return -1;
+            int count = Math.min(Math.min(length, chunkSize), data.length - offset);
+            System.arraycopy(data, offset, target, targetOffset, count);
+            offset += count;
+            return count;
+        }
     }
 }
