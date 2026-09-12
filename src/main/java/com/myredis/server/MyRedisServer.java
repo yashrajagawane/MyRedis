@@ -105,6 +105,7 @@ public final class MyRedisServer {
         }
 
         try (ServerSocket socket = new ServerSocket()) {
+            connectionRegistry.open();
             socket.bind(new InetSocketAddress(host, port));
             serverSocket = socket;
             LOGGER.info("MyRedis listening on port {}", socket.getLocalPort());
