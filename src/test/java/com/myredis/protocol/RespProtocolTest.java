@@ -98,6 +98,14 @@ class RespProtocolTest {
                 new ByteArrayInputStream(incompleteArgument)).readCommand());
     }
 
+    @Test
+    void rejectsPlainCommandsTruncatedBeforeLineEnding() throws Exception {
+        RespDecoder decoder = new RespDecoder(
+                new ByteArrayInputStream("PING".getBytes(StandardCharsets.UTF_8)));
+
+        assertThrows(ProtocolException.class, () -> decoder.readPlainLine(decoder.readFirstByte()));
+    }
+
     private static final class FragmentedInputStream extends InputStream {
         private final byte[] data;
         private final int chunkSize;
