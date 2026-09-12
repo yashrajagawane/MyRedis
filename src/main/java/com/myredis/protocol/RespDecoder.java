@@ -69,6 +69,7 @@ public final class RespDecoder {
             if (next != '\r') bytes.write(next);
             if (bytes.size() > maxValueBytes) throw new ProtocolException("plain command is too large");
         }
+        if (next < 0) throw new ProtocolException("incomplete plain command");
         return bytes.toString(StandardCharsets.UTF_8);
     }
 
