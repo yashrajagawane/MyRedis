@@ -66,5 +66,6 @@ or authentication.
 
 Docker copies `docker-myredis.conf` into the image and stores persistence data
 under `/app/data`. That container-specific configuration binds to `0.0.0.0`
-for published ports. Mount a persistent volume at `/app/data` when data must
-survive container replacement.
+for published ports. The image health check follows `MYREDIS_PORT` when the
+container port is overridden. Mount a persistent volume at `/app/data` when
+data must survive container replacement.
