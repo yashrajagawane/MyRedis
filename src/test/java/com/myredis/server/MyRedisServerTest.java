@@ -99,6 +99,38 @@ class MyRedisServerTest {
     }
 
     @Test
+    void quitClosesOnlyTheRequestingClientAfterAcknowledgingIt() throws Exception {
+        MyRedisServer server = new MyRedisServer(0);
+        CompletableFuture<Void> serverTask = startAsync(server);
+        try {
+            while (server.getPort() == 0) Thread.sleep(10);
+            try (Socket quittingClient = new Socket("localhost", server.getPort());
+                 BufferedReader reader = new BufferedReader(new InputStreamReader(
+                         quittingClient.getInputStream(), StandardCharsets.UTF_8));
+                 BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(
+                         quittingClient.getOutputStream(), StandardCharsets.UTF_8))) {
+                writer.write("QUIT\r\n");
+                writer.flush();
+                assertEquals("OK", reader.readLine());
+                assertEquals(null, reader.readLine());
+            }
+
+            try (Socket survivingClient = new Socket("localhost", server.getPort());
+                 BufferedReader reader = new BufferedReader(new InputStreamReader(
+                         survivingClient.getInputStream(), StandardCharsets.UTF_8));
+                 BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(
+                         survivingClient.getOutputStream(), StandardCharsets.UTF_8))) {
+                writer.write("PING\r\n");
+                writer.flush();
+                assertEquals("PONG", reader.readLine());
+            }
+        } finally {
+            server.stop();
+        }
+        serverTask.get(2, TimeUnit.SECONDS);
+    }
+
+    @Test
     void preservesResponseOrderForPipelinedPlainAndRespCommands() throws Exception {
         MyRedisServer server = new MyRedisServer(0);
         CompletableFuture<Void> serverTask = startAsync(server);
