@@ -64,6 +64,7 @@ writers when needed. Operators should still choose paths with
 appropriate ownership and permissions; MyRedis does not provide path sandboxing
 or authentication.
 
-Docker copies `myredis.conf` into the image and stores persistence data under
-`/app/data`. Mount a persistent volume at that directory when data must survive
-container replacement.
+Docker copies `docker-myredis.conf` into the image and stores persistence data
+under `/app/data`. That container-specific configuration binds to `0.0.0.0`
+for published ports. Mount a persistent volume at `/app/data` when data must
+survive container replacement.
