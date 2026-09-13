@@ -8,7 +8,7 @@ the tested command semantics and return types in this repository.
 
 | Area | Commands | RESP2 coverage |
 | --- | --- | --- |
-| Server | `PING`, `INFO` | Simple/bulk responses and diagnostics |
+| Server | `PING`, `QUIT`, `INFO` | Simple/bulk responses, clean client close, and diagnostics |
 | Strings | `SET`, `GET`, `DEL`, `EXISTS` | Bulk, null-bulk, and integer responses |
 | Counters | `INCR`, `DECR`, `INCRBY` | Integer responses, atomic per-key updates |
 | Lists | `LPUSH`, `RPUSH`, `LPOP`, `RPOP`, `LRANGE`, `LLEN` | Integer, bulk/null, and array responses |

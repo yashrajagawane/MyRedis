@@ -44,6 +44,7 @@ class RespProtocolTest {
         RespEncoder encoder = new RespEncoder();
 
         assertEquals("+OK\r\n", new String(encoder.encode(CommandResult.ok(), "SET"), StandardCharsets.UTF_8));
+        assertEquals("+OK\r\n", new String(encoder.encode(CommandResult.ok(), "QUIT"), StandardCharsets.UTF_8));
         assertEquals(":2\r\n", new String(encoder.encode(new CommandResult("2"), "LLEN"), StandardCharsets.UTF_8));
         assertEquals("$5\r\nvalue\r\n", new String(
                 encoder.encode(new CommandResult("value"), "GET"), StandardCharsets.UTF_8));

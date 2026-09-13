@@ -34,6 +34,7 @@ class CommandParserTest {
     void supportsPhaseTwoCommandShapes() {
         assertEquals("PONG", parser.parse("PING").execute().response());
         assertEquals("value", parser.parse("PING value").execute().response());
+        assertEquals("OK", parser.parse("QUIT").execute().response());
         assertEquals("(nil)", parser.parse("GET key").execute().response());
         assertEquals("0", parser.parse("EXISTS key").execute().response());
         assertEquals("0", parser.parse("DEL key").execute().response());
@@ -151,6 +152,12 @@ class CommandParserTest {
     void rejectsBlankAndUnknownCommands() {
         assertThrows(CommandParseException.class, () -> parser.parse("  "));
         assertThrows(CommandParseException.class, () -> parser.parse("NOPE"));
+    }
+
+    @Test
+    void rejectsQuitArguments() {
+        assertEquals("-ERR wrong number of arguments for 'quit' command",
+                parser.parse("QUIT now").execute().response());
     }
 
     @Test

@@ -55,12 +55,15 @@ public final class ClientHandler implements Runnable {
                     if (firstByte == '*') {
                         var parsed = commandParser.parse(decoder.readCommandAfterPrefix());
                         output.write(respEncoder.encode(parsed.execute(), parsed.name(), parsed.arguments()));
+                        output.flush();
+                        if ("QUIT".equals(parsed.name())) break;
                     } else {
                         String line = decoder.readPlainLine(firstByte);
                         var parsed = commandParser.parse(line);
                         output.write((parsed.execute().response() + "\r\n").getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                        output.flush();
+                        if ("QUIT".equals(parsed.name())) break;
                     }
-                    output.flush();
                 } catch (CommandParseException | ProtocolException exception) {
                     writeError(output, exception.getMessage());
                 } catch (RuntimeException exception) {
