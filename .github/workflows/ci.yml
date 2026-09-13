@@ -57,10 +57,10 @@ jobs:
           test "$(docker image inspect myredis:ci --format '{{.Config.StopSignal}}')" = "SIGTERM"
           docker image inspect myredis:ci --format '{{json .Config.Entrypoint}}' | grep -F 'MaxRAMPercentage=75.0'
 
-      - name: Smoke test Docker container
+      - name: Smoke test Docker container on configured port
         run: |
           docker volume create myredis-ci-data >/dev/null
-          docker run --detach --name myredis-ci --publish 6380:6379 --volume myredis-ci-data:/app/data myredis:ci
+          docker run --detach --name myredis-ci --env MYREDIS_PORT=6380 --publish 6380:6380 --volume myredis-ci-data:/app/data myredis:ci
           cleanup() {
             docker rm --force myredis-ci >/dev/null 2>&1 || true
             docker volume rm myredis-ci-data >/dev/null 2>&1 || true
