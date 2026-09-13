@@ -55,6 +55,26 @@ class RespProtocolTest {
     }
 
     @Test
+    void encodesPingWithoutMessageAsSimpleStringAndWithMessageAsBulkString() {
+        RespEncoder encoder = new RespEncoder();
+
+        assertEquals("+PONG\r\n", new String(
+                encoder.encode(new CommandResult("PONG"), "PING", List.of()), StandardCharsets.UTF_8));
+        assertEquals("$11\r\nhello world\r\n", new String(
+                encoder.encode(new CommandResult("hello world"), "PING", List.of("hello world")),
+                StandardCharsets.UTF_8));
+    }
+
+    @Test
+    void encodesPingMessagesContainingLineBreaksAsSafeBulkStrings() {
+        RespEncoder encoder = new RespEncoder();
+
+        assertEquals("$7\r\nhello\r\n\r\n", new String(
+                encoder.encode(new CommandResult("hello\r\n"), "PING", List.of("hello\r\n")),
+                StandardCharsets.UTF_8));
+    }
+
+    @Test
     void encodesUtf8BulkAndArrayValuesUsingByteLengths() {
         RespEncoder encoder = new RespEncoder();
 
