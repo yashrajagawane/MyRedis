@@ -54,7 +54,7 @@ public final class ClientHandler implements Runnable {
                 try {
                     if (firstByte == '*') {
                         var parsed = commandParser.parse(decoder.readCommandAfterPrefix());
-                        output.write(respEncoder.encode(parsed.execute(), parsed.name()));
+                        output.write(respEncoder.encode(parsed.execute(), parsed.name(), parsed.arguments()));
                     } else {
                         String line = decoder.readPlainLine(firstByte);
                         var parsed = commandParser.parse(line);

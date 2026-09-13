@@ -13,15 +13,20 @@ public final class RespEncoder {
     private static final Set<String> ARRAY_COMMANDS = Set.of("LRANGE", "SMEMBERS", "HGETALL", "ZRANGE");
 
     public byte[] encode(CommandResult result, String commandName) {
+        return encode(result, commandName, java.util.List.of());
+    }
+
+    public byte[] encode(CommandResult result, String commandName, List<String> arguments) {
         String response = result.response();
         if (response.startsWith("-ERR")) return (response + "\r\n").getBytes(StandardCharsets.UTF_8);
         if ("(nil)".equals(response)) return "$-1\r\n".getBytes(StandardCharsets.US_ASCII);
         if (result.arrayValues() != null) return encodeArray(result.arrayValues());
         if (ARRAY_COMMANDS.contains(commandName)) return encodeArray(response);
         if (INTEGER_COMMANDS.contains(commandName)) return (":" + response + "\r\n").getBytes(StandardCharsets.US_ASCII);
-        if ("PING".equals(commandName) || "SET".equals(commandName)) {
+        if ("PING".equals(commandName) && arguments.isEmpty()) {
             return ("+" + response + "\r\n").getBytes(StandardCharsets.UTF_8);
         }
+        if ("SET".equals(commandName)) return ("+" + response + "\r\n").getBytes(StandardCharsets.UTF_8);
         return encodeBulk(response);
     }
 
