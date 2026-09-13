@@ -26,7 +26,9 @@ public final class RespEncoder {
         if ("PING".equals(commandName) && arguments.isEmpty()) {
             return ("+" + response + "\r\n").getBytes(StandardCharsets.UTF_8);
         }
-        if ("SET".equals(commandName)) return ("+" + response + "\r\n").getBytes(StandardCharsets.UTF_8);
+        if ("SET".equals(commandName) || "QUIT".equals(commandName)) {
+            return ("+" + response + "\r\n").getBytes(StandardCharsets.UTF_8);
+        }
         return encodeBulk(response);
     }
 

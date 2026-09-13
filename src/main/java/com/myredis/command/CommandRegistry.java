@@ -12,6 +12,7 @@ public final class CommandRegistry {
 
     public CommandRegistry() {
         register("PING", PingCommand::new);
+        register("QUIT", QuitCommand::new);
         register("INFO", InfoCommand::new);
         register("SET", SetCommand::new);
         register("INCR", IncrCommand::new);
