@@ -15,6 +15,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,6 +32,11 @@ public final class ClientHandler implements Runnable {
     private final int maxArrayElements;
     private final ServerMetrics metrics;
     private final RespEncoder respEncoder = new RespEncoder();
+    private final PubSubBroker pubSubBroker;
+    private final BlockingQueue<List<String>> pubSubMessages = new ArrayBlockingQueue<>(PubSubBroker.MAX_PENDING_MESSAGES);
+    private final Set<String> subscribedChannels = new java.util.HashSet<>();
+    private volatile boolean closed;
+    private Thread pubSubWriter;
     private final List<CommandParser.ParsedCommand> transactionQueue = new ArrayList<>();
     private boolean inTransaction;
     private boolean transactionFailed;
@@ -45,12 +53,23 @@ public final class ClientHandler implements Runnable {
 
     public ClientHandler(Socket socket, ConnectionRegistry connectionRegistry, CommandParser commandParser,
                          int maxValueBytes, int maxArrayElements, ServerMetrics metrics) {
+        this(socket, connectionRegistry, commandParser, maxValueBytes, maxArrayElements, metrics, new PubSubBroker());
+    }
+
+    public ClientHandler(Socket socket, ConnectionRegistry connectionRegistry, CommandParser commandParser,
+                         int maxValueBytes, int maxArrayElements, PubSubBroker pubSubBroker) {
+        this(socket, connectionRegistry, commandParser, maxValueBytes, maxArrayElements, commandParser.metrics(), pubSubBroker);
+    }
+
+    private ClientHandler(Socket socket, ConnectionRegistry connectionRegistry, CommandParser commandParser,
+                          int maxValueBytes, int maxArrayElements, ServerMetrics metrics, PubSubBroker pubSubBroker) {
         this.socket = socket;
         this.connectionRegistry = connectionRegistry;
         this.commandParser = commandParser;
         this.maxValueBytes = maxValueBytes;
         this.maxArrayElements = maxArrayElements;
         this.metrics = metrics;
+        this.pubSubBroker = pubSubBroker;
     }
 
     @Override
@@ -78,6 +97,9 @@ public final class ClientHandler implements Runnable {
         } catch (IOException exception) {
             LOGGER.debug("Client connection closed with an I/O error", exception);
         } finally {
+            closed = true;
+            pubSubBroker.unsubscribeAll(pubSubMessages);
+            if (pubSubWriter != null) pubSubWriter.interrupt();
             connectionRegistry.unregister(socket);
             metrics.clientDisconnected();
             LOGGER.info("Client disconnected");
@@ -91,6 +113,13 @@ public final class ClientHandler implements Runnable {
         }
         String name = tokens.getFirst().toUpperCase(Locale.ROOT);
         List<String> arguments = tokens.subList(1, tokens.size());
+        if (Set.of("SUBSCRIBE", "UNSUBSCRIBE", "PUBLISH").contains(name)) {
+            return handlePubSub(name, arguments, resp, output);
+        }
+        if (!subscribedChannels.isEmpty() && !Set.of("PING", "QUIT").contains(name)) {
+            writeError(output, "only (P)SUBSCRIBE, (P)UNSUBSCRIBE, PING, QUIT are allowed in this context");
+            return false;
+        }
         if ("MULTI".equals(name)) {
             if (!arguments.isEmpty()) {
                 writeResponse(CommandResult.error("wrong number of arguments for 'multi' command"), name, arguments, resp, output);
@@ -157,9 +186,71 @@ public final class ClientHandler implements Runnable {
 
     private void writeResponse(CommandResult result, String name, List<String> arguments,
                                boolean resp, OutputStream output) throws IOException {
-        if (resp) output.write(respEncoder.encode(result, name, arguments));
-        else output.write((result.response() + "\r\n").getBytes(java.nio.charset.StandardCharsets.UTF_8));
-        output.flush();
+        synchronized (output) {
+            if (resp) output.write(respEncoder.encode(result, name, arguments));
+            else output.write((result.response() + "\r\n").getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            output.flush();
+        }
+    }
+
+    private boolean handlePubSub(String name, List<String> arguments, boolean resp, OutputStream output) throws IOException {
+        if ("PUBLISH".equals(name)) {
+            if (arguments.size() != 2) {
+                writeError(output, "wrong number of arguments for 'publish' command");
+            } else {
+                writeResponse(new CommandResult(Integer.toString(pubSubBroker.publish(arguments.get(0), arguments.get(1)))),
+                        name, arguments, resp, output);
+            }
+            return false;
+        }
+        if (arguments.isEmpty()) {
+            writeError(output, "wrong number of arguments for '" + name.toLowerCase(Locale.ROOT) + "' command");
+            return false;
+        }
+        startPubSubWriter(output);
+        for (String channel : arguments) {
+            int count;
+            if ("SUBSCRIBE".equals(name)) {
+                if (subscribedChannels.add(channel)) pubSubBroker.subscribe(channel, pubSubMessages);
+                count = subscribedChannels.size();
+            } else {
+                subscribedChannels.remove(channel);
+                count = pubSubBroker.unsubscribe(channel, pubSubMessages);
+            }
+            sendSubscriptionEvent(name.toLowerCase(Locale.ROOT), channel, count, resp, output);
+        }
+        return false;
+    }
+
+    private void startPubSubWriter(OutputStream output) {
+        if (pubSubWriter != null) return;
+        pubSubWriter = Thread.startVirtualThread(() -> {
+            try {
+                while (!closed) {
+                    List<String> event = pubSubMessages.take();
+                    synchronized (output) {
+                        output.write(respEncoder.encodeArray(event));
+                        output.flush();
+                    }
+                }
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+            } catch (IOException exception) {
+                LOGGER.debug("Pub/Sub client writer closed", exception);
+            }
+        });
+    }
+
+    private void sendSubscriptionEvent(String event, String channel, int count,
+                                       boolean resp, OutputStream output) throws IOException {
+        if (resp) {
+            synchronized (output) {
+                output.write(respEncoder.encodeArray(List.of(event, channel, Integer.toString(count))));
+                output.flush();
+            }
+        } else {
+            writeResponse(new CommandResult(event + " " + channel + " " + count), "", List.of(), false, output);
+        }
     }
 
     private void clearTransaction() {

@@ -10,6 +10,18 @@ MyRedis accepts the commands below through RESP2 arrays or the plain-text format
 | `QUIT` | `QUIT` | `OK`, then closes the current client connection |
 | `INFO` | `INFO` | Operational counters, command latency, persistence errors, expiration, and runtime diagnostics |
 
+## Pub/Sub
+
+| Command | Syntax | Result |
+| --- | --- | --- |
+| `SUBSCRIBE` | `SUBSCRIBE channel [channel ...]` | Subscription acknowledgment per channel |
+| `UNSUBSCRIBE` | `UNSUBSCRIBE channel [channel ...]` | Unsubscription acknowledgment per channel |
+| `PUBLISH` | `PUBLISH channel message` | Number of subscribers that accepted the message |
+
+Subscribed clients receive RESP2 arrays containing `message`, the channel, and
+the published payload. Delivery queues are bounded; messages that cannot be
+queued for a slow subscriber are not counted as delivered.
+
 ## Transactions
 
 | Command | Syntax | Result |

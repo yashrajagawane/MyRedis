@@ -226,6 +226,52 @@ class MyRedisServerTest {
     }
 
     @Test
+    void deliversPubSubMessagesToSubscribersWithoutSharingKeyStorage() throws Exception {
+        MyRedisServer server = new MyRedisServer(0);
+        CompletableFuture<Void> serverTask = startAsync(server);
+        try {
+            while (server.getPort() == 0) Thread.sleep(10);
+            try (Socket subscriber = new Socket("localhost", server.getPort());
+                 java.io.InputStream subscriberInput = subscriber.getInputStream();
+                 java.io.OutputStream subscriberOutput = subscriber.getOutputStream();
+                 Socket publisher = new Socket("localhost", server.getPort());
+                 BufferedReader publisherReader = new BufferedReader(new InputStreamReader(
+                         publisher.getInputStream(), StandardCharsets.UTF_8));
+                 BufferedWriter publisherWriter = new BufferedWriter(new OutputStreamWriter(
+                         publisher.getOutputStream(), StandardCharsets.UTF_8))) {
+                subscriberOutput.write("*2\r\n$9\r\nSUBSCRIBE\r\n$7\r\nupdates\r\n"
+                        .getBytes(StandardCharsets.UTF_8));
+                subscriberOutput.flush();
+                assertEquals("*3", readRespLine(subscriberInput));
+                assertEquals("$9", readRespLine(subscriberInput));
+                assertEquals("subscribe", readRespLine(subscriberInput));
+                assertEquals("$7", readRespLine(subscriberInput));
+                assertEquals("updates", readRespLine(subscriberInput));
+                assertEquals("$1", readRespLine(subscriberInput));
+                assertEquals("1", readRespLine(subscriberInput));
+
+                publisherWriter.write("PUBLISH updates hello\r\n");
+                publisherWriter.flush();
+                assertEquals("1", publisherReader.readLine());
+                assertEquals("*3", readRespLine(subscriberInput));
+                assertEquals("$7", readRespLine(subscriberInput));
+                assertEquals("message", readRespLine(subscriberInput));
+                assertEquals("$7", readRespLine(subscriberInput));
+                assertEquals("updates", readRespLine(subscriberInput));
+                assertEquals("$5", readRespLine(subscriberInput));
+                assertEquals("hello", readRespLine(subscriberInput));
+
+                publisherWriter.write("GET updates\r\n");
+                publisherWriter.flush();
+                assertEquals("(nil)", publisherReader.readLine());
+            }
+        } finally {
+            server.stop();
+        }
+        serverTask.get(2, TimeUnit.SECONDS);
+    }
+
+    @Test
     void returnsAnErrorInsteadOfClosingConnectionForWrongType() throws Exception {
         MyRedisServer server = new MyRedisServer(0);
         CompletableFuture<Void> serverTask = startAsync(server);
