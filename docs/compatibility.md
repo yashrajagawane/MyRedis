@@ -9,6 +9,7 @@ the tested command semantics and return types in this repository.
 | Area | Commands | RESP2 coverage |
 | --- | --- | --- |
 | Server | `PING`, `QUIT`, `INFO` | Simple/bulk responses, clean client close, and diagnostics |
+| Transactions | `MULTI`, `EXEC`, `DISCARD` | Per-client queueing, ordered execution arrays, and discard |
 | Strings | `SET`, `GET`, `DEL`, `EXISTS` | Bulk, null-bulk, and integer responses |
 | Counters | `INCR`, `DECR`, `INCRBY` | Integer responses, atomic per-key updates |
 | Lists | `LPUSH`, `RPUSH`, `LPOP`, `RPOP`, `LRANGE`, `LLEN` | Integer, bulk/null, and array responses |
@@ -33,7 +34,7 @@ in several areas:
 - Sorted-set ordering and command options are limited to the documented subset.
 - Responses are encoded from the command-specific response mapping rather than
   from a general Redis value protocol.
-- Nested request arrays, transactions, Pub/Sub, authentication, ACLs,
+- Nested request arrays, Pub/Sub, authentication, ACLs,
   replication, clustering, and TLS are not implemented.
 - Redis command aliases and options not listed in [COMMANDS.md](../COMMANDS.md)
   should be treated as unsupported.

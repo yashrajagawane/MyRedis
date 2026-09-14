@@ -10,6 +10,19 @@ MyRedis accepts the commands below through RESP2 arrays or the plain-text format
 | `QUIT` | `QUIT` | `OK`, then closes the current client connection |
 | `INFO` | `INFO` | Operational counters, command latency, persistence errors, expiration, and runtime diagnostics |
 
+## Transactions
+
+| Command | Syntax | Result |
+| --- | --- | --- |
+| `MULTI` | `MULTI` | Starts a per-client transaction and returns `OK` |
+| `EXEC` | `EXEC` | Executes queued commands in order and returns their results as an array for RESP2 clients |
+| `DISCARD` | `DISCARD` | Clears the queued transaction and returns `OK` |
+
+Commands issued between `MULTI` and `EXEC` return `QUEUED`. Unknown commands
+mark the transaction for abort; `EXEC` then returns an `EXECABORT` error. The
+transaction queue is local to one client connection and does not provide
+rollback for commands that have already executed.
+
 ## Strings and counters
 
 | Command | Syntax | Result |
@@ -80,5 +93,5 @@ Counter commands create a missing key at the requested value, preserve an existi
 - Operations on an incompatible data type return a `WRONGTYPE` error.
 - Empty keys are rejected.
 - Numeric parsing, sorted-set scores, and overflow are validated.
-- `MULTI`/`EXEC`, Pub/Sub, authentication, and full Redis command compatibility are not implemented.
+- Pub/Sub, authentication, and full Redis command compatibility are not implemented.
 - Maximum RESP value size, array size, and client connections are configurable; see [README.md](README.md).
