@@ -35,6 +35,7 @@ public final class MyRedisServer {
     private final int maxValueBytes;
     private final int maxArrayElements;
     private final String authPassword;
+    private final int clientIdleTimeoutSeconds;
     private volatile ServerSocket serverSocket;
 
     public MyRedisServer(int port) {
@@ -58,6 +59,7 @@ public final class MyRedisServer {
         this.maxValueBytes = maxValueBytes;
         this.maxArrayElements = maxArrayElements;
         this.authPassword = "";
+        this.clientIdleTimeoutSeconds = 0;
         this.connectionRegistry = new ConnectionRegistry(maxConnections);
         this.pubSubBroker = new PubSubBroker();
         this.expiration = new ExpirationManager();
@@ -95,6 +97,14 @@ public final class MyRedisServer {
     public MyRedisServer(String host, int port, InMemoryStorageEngine storage, CommandParser commandParser,
                          ExpirationManager expiration, PersistenceManager persistence,
                          int maxValueBytes, int maxArrayElements, int maxConnections, String authPassword) {
+        this(host, port, storage, commandParser, expiration, persistence, maxValueBytes, maxArrayElements,
+                maxConnections, authPassword, 0);
+    }
+
+    public MyRedisServer(String host, int port, InMemoryStorageEngine storage, CommandParser commandParser,
+                         ExpirationManager expiration, PersistenceManager persistence,
+                         int maxValueBytes, int maxArrayElements, int maxConnections, String authPassword,
+                         int clientIdleTimeoutSeconds) {
         if (port < 0 || port > 65_535) {
             throw new IllegalArgumentException("port must be between 0 and 65535");
         }
@@ -103,6 +113,13 @@ public final class MyRedisServer {
         this.maxValueBytes = maxValueBytes;
         this.maxArrayElements = maxArrayElements;
         this.authPassword = authPassword == null ? "" : authPassword;
+        if (clientIdleTimeoutSeconds < 0) {
+            throw new IllegalArgumentException("client idle timeout must not be negative");
+        }
+        if (clientIdleTimeoutSeconds > Integer.MAX_VALUE / 1_000) {
+            throw new IllegalArgumentException("client idle timeout is too large");
+        }
+        this.clientIdleTimeoutSeconds = clientIdleTimeoutSeconds;
         this.connectionRegistry = new ConnectionRegistry(maxConnections);
         this.pubSubBroker = new PubSubBroker();
         this.storage = storage;
@@ -132,7 +149,7 @@ public final class MyRedisServer {
                     }
                     commandParser.metrics().clientConnected();
                     clientExecutor.submit(new ClientHandler(client, connectionRegistry, commandParser,
-                            maxValueBytes, maxArrayElements, pubSubBroker, authPassword));
+                            maxValueBytes, maxArrayElements, pubSubBroker, authPassword, clientIdleTimeoutSeconds));
                     LOGGER.info("Client connected from {}", client.getRemoteSocketAddress());
                 } catch (IOException exception) {
                     if (running.get()) {

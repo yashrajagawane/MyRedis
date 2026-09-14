@@ -28,6 +28,7 @@ server starts.
 | `limits.max.value.bytes` | `16777216` | `MYREDIS_MAX_VALUE_BYTES` | Maximum bulk/plain value size |
 | `limits.max.array.elements` | `1024` | `MYREDIS_MAX_ARRAY_ELEMENTS` | Maximum RESP command-array length |
 | `limits.max.connections` | `10000` | `MYREDIS_MAX_CONNECTIONS` | Maximum accepted client connections |
+| `limits.client.idle.timeout.seconds` | `0` | `MYREDIS_CLIENT_IDLE_TIMEOUT_SECONDS` | Disconnect inactive clients; `0` disables the timeout |
 
 ## Examples
 

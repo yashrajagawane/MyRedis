@@ -17,6 +17,7 @@ network boundary.
   replacement where supported.
 - The Docker image runs the server as the non-root `myredis` user.
 - Optional password authentication can require `AUTH` before normal commands.
+- An optional client idle timeout closes inactive connections to limit resource retention.
 - The Docker image declares SIGTERM as its stop signal and uses container-aware
   JVM memory sizing.
 - Docker persistence is isolated under the `/app/data` volume.

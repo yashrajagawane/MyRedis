@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.ArrayList;
@@ -36,6 +37,7 @@ public final class ClientHandler implements Runnable {
     private final RespEncoder respEncoder = new RespEncoder();
     private final PubSubBroker pubSubBroker;
     private final String authPassword;
+    private final int clientIdleTimeoutSeconds;
     private final BlockingQueue<List<String>> pubSubMessages = new ArrayBlockingQueue<>(PubSubBroker.MAX_PENDING_MESSAGES);
     private final Set<String> subscribedChannels = new java.util.HashSet<>();
     private volatile boolean closed;
@@ -68,7 +70,14 @@ public final class ClientHandler implements Runnable {
     public ClientHandler(Socket socket, ConnectionRegistry connectionRegistry, CommandParser commandParser,
                          int maxValueBytes, int maxArrayElements, PubSubBroker pubSubBroker, String authPassword) {
         this(socket, connectionRegistry, commandParser, maxValueBytes, maxArrayElements, commandParser.metrics(),
-                pubSubBroker, authPassword);
+                pubSubBroker, authPassword, 0);
+    }
+
+    public ClientHandler(Socket socket, ConnectionRegistry connectionRegistry, CommandParser commandParser,
+                         int maxValueBytes, int maxArrayElements, PubSubBroker pubSubBroker, String authPassword,
+                         int clientIdleTimeoutSeconds) {
+        this(socket, connectionRegistry, commandParser, maxValueBytes, maxArrayElements, commandParser.metrics(),
+                pubSubBroker, authPassword, clientIdleTimeoutSeconds);
     }
 
     private ClientHandler(Socket socket, ConnectionRegistry connectionRegistry, CommandParser commandParser,
@@ -79,6 +88,13 @@ public final class ClientHandler implements Runnable {
     private ClientHandler(Socket socket, ConnectionRegistry connectionRegistry, CommandParser commandParser,
                           int maxValueBytes, int maxArrayElements, ServerMetrics metrics, PubSubBroker pubSubBroker,
                           String authPassword) {
+        this(socket, connectionRegistry, commandParser, maxValueBytes, maxArrayElements, metrics, pubSubBroker,
+                authPassword, 0);
+    }
+
+    private ClientHandler(Socket socket, ConnectionRegistry connectionRegistry, CommandParser commandParser,
+                          int maxValueBytes, int maxArrayElements, ServerMetrics metrics, PubSubBroker pubSubBroker,
+                          String authPassword, int clientIdleTimeoutSeconds) {
         this.socket = socket;
         this.connectionRegistry = connectionRegistry;
         this.commandParser = commandParser;
@@ -88,11 +104,19 @@ public final class ClientHandler implements Runnable {
         this.pubSubBroker = pubSubBroker;
         this.authPassword = authPassword == null ? "" : authPassword;
         this.authenticated = this.authPassword.isEmpty();
+        if (clientIdleTimeoutSeconds < 0) throw new IllegalArgumentException("client idle timeout must not be negative");
+        if (clientIdleTimeoutSeconds > Integer.MAX_VALUE / 1_000) {
+            throw new IllegalArgumentException("client idle timeout is too large");
+        }
+        this.clientIdleTimeoutSeconds = clientIdleTimeoutSeconds;
     }
 
     @Override
     public void run() {
         try (socket; InputStream input = socket.getInputStream(); OutputStream output = socket.getOutputStream()) {
+            if (clientIdleTimeoutSeconds > 0) {
+                socket.setSoTimeout(Math.multiplyExact(clientIdleTimeoutSeconds, 1_000));
+            }
             RespDecoder decoder = new RespDecoder(input, maxValueBytes, maxArrayElements);
             int firstByte;
             while ((firstByte = decoder.readFirstByte()) >= 0) {
@@ -112,6 +136,8 @@ public final class ClientHandler implements Runnable {
                             ? "internal server error" : exception.getMessage());
                 }
             }
+        } catch (SocketTimeoutException exception) {
+            LOGGER.debug("Closing idle client connection");
         } catch (IOException exception) {
             LOGGER.debug("Client connection closed with an I/O error", exception);
         } finally {
