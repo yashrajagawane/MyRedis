@@ -98,6 +98,28 @@ class PersistenceRecoveryTest {
     }
 
     @Test
+    void truncatesAValidButUnterminatedFinalAofRecord() throws Exception {
+        Path directory = Files.createTempDirectory("myredis-aof-unterminated-");
+        Path aof = directory.resolve("myredis.aof");
+        Path snapshot = directory.resolve("myredis.snapshot");
+        String valid = java.util.Base64.getEncoder().encodeToString("SET".getBytes()) + " "
+                + java.util.Base64.getEncoder().encodeToString("key".getBytes()) + " "
+                + java.util.Base64.getEncoder().encodeToString("value".getBytes());
+        Files.writeString(aof, valid);
+
+        ExpirationManager expiration = new ExpirationManager();
+        InMemoryStorageEngine storage = new InMemoryStorageEngine(expiration);
+        PersistenceManager persistence = new PersistenceManager(aof, snapshot, storage);
+        CommandParser parser = new CommandParser(new CommandRegistry(), storage, expiration, persistence);
+
+        persistence.recover(parser);
+
+        assertEquals("(nil)", parser.parse("GET key").executeWithoutPersistence().response());
+        assertEquals(0, Files.size(aof));
+        persistence.close();
+    }
+
+    @Test
     void rejectsCorruptionBeforeTheFinalAofRecord() throws Exception {
         Path directory = Files.createTempDirectory("myredis-aof-corrupt-");
         Path aof = directory.resolve("myredis.aof");
