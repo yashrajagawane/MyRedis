@@ -24,6 +24,7 @@ class ConfigLoaderTest {
         assertEquals(1_024, loaded.maxArrayElements());
         assertEquals(10_000, loaded.maxConnections());
         assertEquals("", loaded.authPassword());
+        assertEquals(0, loaded.clientIdleTimeoutSeconds());
         Files.deleteIfExists(config);
     }
 

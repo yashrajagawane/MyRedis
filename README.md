@@ -48,7 +48,7 @@ Runtime defaults are in [myredis.conf](myredis.conf). Configuration is applied i
 java -jar target/myredis-0.1.0-SNAPSHOT.jar --port 6380 --aof-fsync EVERY_SECOND
 ```
 
-Supported settings include `host`, `port`, `aof.enabled`, `aof.path`, `aof.fsync`, `snapshot.path`, `snapshot.interval.seconds`, `log.level`, `limits.max.value.bytes`, `limits.max.array.elements`, `limits.max.connections`, and optional `auth.password`. For containers, prefer the `MYREDIS_AUTH_PASSWORD` environment variable so the password is not stored in an image configuration file.
+Supported settings include `host`, `port`, `aof.enabled`, `aof.path`, `aof.fsync`, `snapshot.path`, `snapshot.interval.seconds`, `log.level`, `limits.max.value.bytes`, `limits.max.array.elements`, `limits.max.connections`, optional `auth.password`, and `limits.client.idle.timeout.seconds`. For containers, prefer the `MYREDIS_AUTH_PASSWORD` environment variable so the password is not stored in an image configuration file. An idle timeout of `0` disables the timeout.
 
 ## Docker
 

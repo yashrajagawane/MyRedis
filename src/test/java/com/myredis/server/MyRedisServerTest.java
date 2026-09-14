@@ -55,6 +55,28 @@ class MyRedisServerTest {
     }
 
     @Test
+    void closesIdleClientsWhenTimeoutIsConfigured() throws Exception {
+        ExpirationManager expiration = new ExpirationManager();
+        InMemoryStorageEngine storage = new InMemoryStorageEngine(expiration);
+        PersistenceManager persistence = PersistenceManager.disabled(storage);
+        CommandParser parser = new CommandParser(new CommandRegistry(), storage, expiration, persistence);
+        MyRedisServer server = new MyRedisServer("127.0.0.1", 0, storage, parser, expiration, persistence,
+                1024, 64, 10, "", 1);
+        CompletableFuture<Void> serverTask = startAsync(server);
+        try {
+            while (server.getPort() == 0) Thread.sleep(10);
+            try (Socket client = new Socket("localhost", server.getPort());
+                 BufferedReader reader = new BufferedReader(new InputStreamReader(
+                         client.getInputStream(), StandardCharsets.UTF_8))) {
+                assertEquals(null, reader.readLine());
+            }
+        } finally {
+            server.stop();
+        }
+        serverTask.get(2, TimeUnit.SECONDS);
+    }
+
+    @Test
     void acknowledgesInputAndStopsCleanly() throws Exception {
         MyRedisServer server = new MyRedisServer(0);
         CompletableFuture<Void> serverTask = startAsync(server);

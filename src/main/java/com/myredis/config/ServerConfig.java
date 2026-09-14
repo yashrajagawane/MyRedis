@@ -18,7 +18,8 @@ public record ServerConfig(
         int maxValueBytes,
         int maxArrayElements,
         int maxConnections,
-        String authPassword) {
+        String authPassword,
+        int clientIdleTimeoutSeconds) {
 
     public ServerConfig {
         if (host == null || host.isBlank()) throw new IllegalArgumentException("host must not be blank");
@@ -34,5 +35,9 @@ public record ServerConfig(
         if (maxArrayElements < 1) throw new IllegalArgumentException("max array elements must be positive");
         if (maxConnections < 1) throw new IllegalArgumentException("max connections must be positive");
         if (authPassword == null) throw new IllegalArgumentException("auth password must not be null");
+        if (clientIdleTimeoutSeconds < 0) throw new IllegalArgumentException("client idle timeout must not be negative");
+        if (clientIdleTimeoutSeconds > Integer.MAX_VALUE / 1_000) {
+            throw new IllegalArgumentException("client idle timeout is too large");
+        }
     }
 }
