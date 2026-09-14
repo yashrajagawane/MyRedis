@@ -9,7 +9,7 @@ import java.util.Set;
 public final class RespEncoder {
     private static final Set<String> INTEGER_COMMANDS = Set.of(
             "DEL", "EXISTS", "EXPIRE", "PEXPIRE", "TTL", "PERSIST", "INCR", "DECR", "INCRBY", "LPUSH", "RPUSH", "LLEN",
-            "SADD", "SREM", "SISMEMBER", "SCARD", "HSET", "HDEL", "HEXISTS", "ZADD", "ZREM", "ZRANK");
+            "SADD", "SREM", "SISMEMBER", "SCARD", "HSET", "HDEL", "HEXISTS", "ZADD", "ZREM", "ZRANK", "PUBLISH");
     private static final Set<String> ARRAY_COMMANDS = Set.of("LRANGE", "SMEMBERS", "HGETALL", "ZRANGE");
 
     public byte[] encode(CommandResult result, String commandName) {
@@ -51,7 +51,7 @@ public final class RespEncoder {
         return ("$" + bytes.length + "\r\n" + value + "\r\n").getBytes(StandardCharsets.UTF_8);
     }
 
-    private byte[] encodeArray(List<String> values) {
+    public byte[] encodeArray(List<String> values) {
         StringBuilder result = new StringBuilder("*").append(values.size()).append("\r\n");
         for (String item : values) {
             byte[] bytes = item.getBytes(StandardCharsets.UTF_8);

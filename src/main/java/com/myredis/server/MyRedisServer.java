@@ -25,6 +25,7 @@ public final class MyRedisServer {
     private final int port;
     private final AtomicBoolean running = new AtomicBoolean();
     private final ConnectionRegistry connectionRegistry;
+    private final PubSubBroker pubSubBroker;
     private final ExecutorService clientExecutor = Executors.newVirtualThreadPerTaskExecutor();
     private final ExpirationManager expiration;
     private final InMemoryStorageEngine storage;
@@ -56,6 +57,7 @@ public final class MyRedisServer {
         this.maxValueBytes = maxValueBytes;
         this.maxArrayElements = maxArrayElements;
         this.connectionRegistry = new ConnectionRegistry(maxConnections);
+        this.pubSubBroker = new PubSubBroker();
         this.expiration = new ExpirationManager();
         this.storage = new InMemoryStorageEngine(expiration);
         this.persistence = PersistenceManager.disabled(storage);
@@ -92,6 +94,7 @@ public final class MyRedisServer {
         this.maxValueBytes = maxValueBytes;
         this.maxArrayElements = maxArrayElements;
         this.connectionRegistry = new ConnectionRegistry(maxConnections);
+        this.pubSubBroker = new PubSubBroker();
         this.storage = storage;
         this.commandParser = commandParser;
         this.expiration = expiration;
@@ -119,7 +122,7 @@ public final class MyRedisServer {
                     }
                     commandParser.metrics().clientConnected();
                     clientExecutor.submit(new ClientHandler(client, connectionRegistry, commandParser,
-                            maxValueBytes, maxArrayElements));
+                            maxValueBytes, maxArrayElements, pubSubBroker));
                     LOGGER.info("Client connected from {}", client.getRemoteSocketAddress());
                 } catch (IOException exception) {
                     if (running.get()) {
