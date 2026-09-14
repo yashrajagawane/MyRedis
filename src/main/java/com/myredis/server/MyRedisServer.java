@@ -34,6 +34,7 @@ public final class MyRedisServer {
     private final PersistenceManager persistence;
     private final int maxValueBytes;
     private final int maxArrayElements;
+    private final String authPassword;
     private volatile ServerSocket serverSocket;
 
     public MyRedisServer(int port) {
@@ -56,6 +57,7 @@ public final class MyRedisServer {
         this.port = port;
         this.maxValueBytes = maxValueBytes;
         this.maxArrayElements = maxArrayElements;
+        this.authPassword = "";
         this.connectionRegistry = new ConnectionRegistry(maxConnections);
         this.pubSubBroker = new PubSubBroker();
         this.expiration = new ExpirationManager();
@@ -86,6 +88,13 @@ public final class MyRedisServer {
     public MyRedisServer(String host, int port, InMemoryStorageEngine storage, CommandParser commandParser,
                          ExpirationManager expiration, PersistenceManager persistence,
                          int maxValueBytes, int maxArrayElements, int maxConnections) {
+        this(host, port, storage, commandParser, expiration, persistence,
+                maxValueBytes, maxArrayElements, maxConnections, "");
+    }
+
+    public MyRedisServer(String host, int port, InMemoryStorageEngine storage, CommandParser commandParser,
+                         ExpirationManager expiration, PersistenceManager persistence,
+                         int maxValueBytes, int maxArrayElements, int maxConnections, String authPassword) {
         if (port < 0 || port > 65_535) {
             throw new IllegalArgumentException("port must be between 0 and 65535");
         }
@@ -93,6 +102,7 @@ public final class MyRedisServer {
         this.port = port;
         this.maxValueBytes = maxValueBytes;
         this.maxArrayElements = maxArrayElements;
+        this.authPassword = authPassword == null ? "" : authPassword;
         this.connectionRegistry = new ConnectionRegistry(maxConnections);
         this.pubSubBroker = new PubSubBroker();
         this.storage = storage;
@@ -122,7 +132,7 @@ public final class MyRedisServer {
                     }
                     commandParser.metrics().clientConnected();
                     clientExecutor.submit(new ClientHandler(client, connectionRegistry, commandParser,
-                            maxValueBytes, maxArrayElements, pubSubBroker));
+                            maxValueBytes, maxArrayElements, pubSubBroker, authPassword));
                     LOGGER.info("Client connected from {}", client.getRemoteSocketAddress());
                 } catch (IOException exception) {
                     if (running.get()) {

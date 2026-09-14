@@ -9,6 +9,7 @@ MyRedis accepts the commands below through RESP2 arrays or the plain-text format
 | `PING` | `PING [message]` | `PONG`, or the supplied message |
 | `QUIT` | `QUIT` | `OK`, then closes the current client connection |
 | `INFO` | `INFO` | Operational counters, command latency, persistence errors, expiration, and runtime diagnostics |
+| `AUTH` | `AUTH password` | Authenticates the client when a password is configured |
 
 ## Pub/Sub
 

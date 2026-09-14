@@ -8,7 +8,7 @@ the tested command semantics and return types in this repository.
 
 | Area | Commands | RESP2 coverage |
 | --- | --- | --- |
-| Server | `PING`, `QUIT`, `INFO` | Simple/bulk responses, clean client close, and diagnostics |
+| Server | `PING`, `QUIT`, `INFO`, `AUTH` | Simple/bulk responses, clean client close, diagnostics, and optional password authentication |
 | Transactions | `MULTI`, `EXEC`, `DISCARD` | Per-client queueing, ordered execution arrays, and discard |
 | Pub/Sub | `SUBSCRIBE`, `UNSUBSCRIBE`, `PUBLISH` | Per-client subscriptions, bounded asynchronous delivery, and message arrays |
 | Strings | `SET`, `GET`, `DEL`, `EXISTS` | Bulk, null-bulk, and integer responses |

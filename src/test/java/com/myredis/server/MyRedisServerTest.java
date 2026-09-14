@@ -11,9 +11,49 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
+import com.myredis.command.CommandParser;
+import com.myredis.command.CommandRegistry;
+import com.myredis.expiration.ExpirationManager;
+import com.myredis.persistence.PersistenceManager;
+import com.myredis.storage.InMemoryStorageEngine;
 import org.junit.jupiter.api.Test;
 
 class MyRedisServerTest {
+    @Test
+    void requiresAuthenticationBeforeServingCommandsWhenConfigured() throws Exception {
+        ExpirationManager expiration = new ExpirationManager();
+        InMemoryStorageEngine storage = new InMemoryStorageEngine(expiration);
+        CommandParser parser = new CommandParser(new CommandRegistry(), storage, expiration,
+                PersistenceManager.disabled(storage));
+        MyRedisServer server = new MyRedisServer("127.0.0.1", 0, storage, parser, expiration,
+                PersistenceManager.disabled(storage), 1024, 64, 10, "secret");
+        CompletableFuture<Void> serverTask = startAsync(server);
+        try {
+            while (server.getPort() == 0) Thread.sleep(10);
+            try (Socket client = new Socket("localhost", server.getPort());
+                 BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(
+                         client.getOutputStream(), StandardCharsets.UTF_8));
+                 BufferedReader reader = new BufferedReader(new InputStreamReader(
+                         client.getInputStream(), StandardCharsets.UTF_8))) {
+                writer.write("GET key\r\n");
+                writer.flush();
+                assertEquals("-ERR NOAUTH Authentication required", reader.readLine());
+                writer.write("AUTH wrong\r\n");
+                writer.flush();
+                assertEquals("-ERR invalid username-password pair", reader.readLine());
+                writer.write("AUTH secret\r\n");
+                writer.flush();
+                assertEquals("OK", reader.readLine());
+                writer.write("SET key value\r\n");
+                writer.flush();
+                assertEquals("OK", reader.readLine());
+            }
+        } finally {
+            server.stop();
+        }
+        serverTask.get(2, TimeUnit.SECONDS);
+    }
+
     @Test
     void acknowledgesInputAndStopsCleanly() throws Exception {
         MyRedisServer server = new MyRedisServer(0);

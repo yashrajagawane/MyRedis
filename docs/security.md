@@ -16,6 +16,7 @@ network boundary.
 - Persistence writes use configured filesystem paths and atomic snapshot
   replacement where supported.
 - The Docker image runs the server as the non-root `myredis` user.
+- Optional password authentication can require `AUTH` before normal commands.
 - The Docker image declares SIGTERM as its stop signal and uses container-aware
   JVM memory sizing.
 - Docker persistence is isolated under the `/app/data` volume.
@@ -36,11 +37,17 @@ procedures rather than exposing them over the network.
 
 ## Current limitations
 
-MyRedis currently has no `AUTH` command, TLS, ACLs, encryption at rest,
+MyRedis currently has no TLS, ACLs, encryption at rest,
 multi-tenant isolation, audit log, replication authentication, or network-level
 command allowlist. It also does not provide a memory quota or a request-rate
 limiter. These limitations are intentional scope boundaries and must be
 considered in any deployment threat model.
+
+When `auth.password` is non-empty, clients must authenticate with `AUTH password`
+before using storage, transactions, or Pub/Sub commands. Authentication is
+disabled by default for backward compatibility. Passwords are not logged, but
+this is not a replacement for TLS because credentials are otherwise sent in
+plaintext.
 
 ## Security testing priorities
 
