@@ -26,10 +26,24 @@ public final class RespEncoder {
         if ("PING".equals(commandName) && arguments.isEmpty()) {
             return ("+" + response + "\r\n").getBytes(StandardCharsets.UTF_8);
         }
-        if ("SET".equals(commandName) || "QUIT".equals(commandName)) {
+        if (Set.of("SET", "QUIT", "MULTI", "DISCARD", "EXEC").contains(commandName)
+                || "QUEUED".equals(response)) {
             return ("+" + response + "\r\n").getBytes(StandardCharsets.UTF_8);
         }
         return encodeBulk(response);
+    }
+
+    public byte[] encodeResults(List<CommandResult> results) {
+        return encodeResults(results, results.stream().map(result -> "").toList());
+    }
+
+    public byte[] encodeResults(List<CommandResult> results, List<String> commandNames) {
+        StringBuilder encoded = new StringBuilder("*").append(results.size()).append("\r\n");
+        for (int index = 0; index < results.size(); index++) {
+            String commandName = index < commandNames.size() ? commandNames.get(index) : "";
+            encoded.append(new String(encode(results.get(index), commandName), StandardCharsets.UTF_8));
+        }
+        return encoded.toString().getBytes(StandardCharsets.UTF_8);
     }
 
     private byte[] encodeBulk(String value) {

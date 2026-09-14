@@ -20,7 +20,7 @@ Commands are available through RESP2 and the plain-text request format.
 
 | Area | Commands |
 | --- | --- |
-| Server | `PING`, `QUIT`, `INFO` |
+| Server | `PING`, `QUIT`, `INFO`, `MULTI`, `EXEC`, `DISCARD` |
 | Strings | `SET`, `GET`, `DEL`, `EXISTS` |
 | Atomic counters | `INCR`, `DECR`, `INCRBY` |
 | Lists | `LPUSH`, `RPUSH`, `LPOP`, `RPOP`, `LRANGE`, `LLEN` |
