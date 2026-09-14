@@ -17,7 +17,8 @@ public record ServerConfig(
         String logLevel,
         int maxValueBytes,
         int maxArrayElements,
-        int maxConnections) {
+        int maxConnections,
+        String authPassword) {
 
     public ServerConfig {
         if (host == null || host.isBlank()) throw new IllegalArgumentException("host must not be blank");
@@ -32,5 +33,6 @@ public record ServerConfig(
         if (maxValueBytes < 1) throw new IllegalArgumentException("max value bytes must be positive");
         if (maxArrayElements < 1) throw new IllegalArgumentException("max array elements must be positive");
         if (maxConnections < 1) throw new IllegalArgumentException("max connections must be positive");
+        if (authPassword == null) throw new IllegalArgumentException("auth password must not be null");
     }
 }

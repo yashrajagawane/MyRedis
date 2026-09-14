@@ -20,7 +20,7 @@ Commands are available through RESP2 and the plain-text request format.
 
 | Area | Commands |
 | --- | --- |
-| Server | `PING`, `QUIT`, `INFO`, `MULTI`, `EXEC`, `DISCARD` |
+| Server | `PING`, `QUIT`, `INFO`, `AUTH`, `MULTI`, `EXEC`, `DISCARD` |
 | Pub/Sub | `SUBSCRIBE`, `UNSUBSCRIBE`, `PUBLISH` |
 | Strings | `SET`, `GET`, `DEL`, `EXISTS` |
 | Atomic counters | `INCR`, `DECR`, `INCRBY` |
@@ -48,7 +48,7 @@ Runtime defaults are in [myredis.conf](myredis.conf). Configuration is applied i
 java -jar target/myredis-0.1.0-SNAPSHOT.jar --port 6380 --aof-fsync EVERY_SECOND
 ```
 
-Supported settings include `host`, `port`, `aof.enabled`, `aof.path`, `aof.fsync`, `snapshot.path`, `snapshot.interval.seconds`, `log.level`, `limits.max.value.bytes`, `limits.max.array.elements`, and `limits.max.connections`.
+Supported settings include `host`, `port`, `aof.enabled`, `aof.path`, `aof.fsync`, `snapshot.path`, `snapshot.interval.seconds`, `log.level`, `limits.max.value.bytes`, `limits.max.array.elements`, `limits.max.connections`, and optional `auth.password`. For containers, prefer the `MYREDIS_AUTH_PASSWORD` environment variable so the password is not stored in an image configuration file.
 
 ## Docker
 

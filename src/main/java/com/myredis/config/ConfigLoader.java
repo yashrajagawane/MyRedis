@@ -33,7 +33,8 @@ public final class ConfigLoader {
                     requiredProperty(values, "log.level"),
                     Integer.parseInt(requiredProperty(values, "limits.max.value.bytes")),
                     Integer.parseInt(requiredProperty(values, "limits.max.array.elements")),
-                    Integer.parseInt(requiredProperty(values, "limits.max.connections")));
+                    Integer.parseInt(requiredProperty(values, "limits.max.connections")),
+                    values.getProperty("auth.password", ""));
         } catch (IllegalArgumentException exception) {
             throw new IllegalArgumentException("Invalid MyRedis configuration: " + exception.getMessage(), exception);
         }
@@ -52,6 +53,7 @@ public final class ConfigLoader {
         values.setProperty("limits.max.value.bytes", "16777216");
         values.setProperty("limits.max.array.elements", "1024");
         values.setProperty("limits.max.connections", "10000");
+        values.setProperty("auth.password", "");
         return values;
     }
 
@@ -103,6 +105,7 @@ public final class ConfigLoader {
         map(values, environment, "MYREDIS_MAX_VALUE_BYTES", "limits.max.value.bytes");
         map(values, environment, "MYREDIS_MAX_ARRAY_ELEMENTS", "limits.max.array.elements");
         map(values, environment, "MYREDIS_MAX_CONNECTIONS", "limits.max.connections");
+        map(values, environment, "MYREDIS_AUTH_PASSWORD", "auth.password");
     }
 
     private static void map(Properties values, Map<String, String> environment, String env, String key) {

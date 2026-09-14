@@ -11,6 +11,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -33,10 +35,12 @@ public final class ClientHandler implements Runnable {
     private final ServerMetrics metrics;
     private final RespEncoder respEncoder = new RespEncoder();
     private final PubSubBroker pubSubBroker;
+    private final String authPassword;
     private final BlockingQueue<List<String>> pubSubMessages = new ArrayBlockingQueue<>(PubSubBroker.MAX_PENDING_MESSAGES);
     private final Set<String> subscribedChannels = new java.util.HashSet<>();
     private volatile boolean closed;
     private Thread pubSubWriter;
+    private boolean authenticated;
     private final List<CommandParser.ParsedCommand> transactionQueue = new ArrayList<>();
     private boolean inTransaction;
     private boolean transactionFailed;
@@ -58,11 +62,23 @@ public final class ClientHandler implements Runnable {
 
     public ClientHandler(Socket socket, ConnectionRegistry connectionRegistry, CommandParser commandParser,
                          int maxValueBytes, int maxArrayElements, PubSubBroker pubSubBroker) {
-        this(socket, connectionRegistry, commandParser, maxValueBytes, maxArrayElements, commandParser.metrics(), pubSubBroker);
+        this(socket, connectionRegistry, commandParser, maxValueBytes, maxArrayElements, pubSubBroker, "");
+    }
+
+    public ClientHandler(Socket socket, ConnectionRegistry connectionRegistry, CommandParser commandParser,
+                         int maxValueBytes, int maxArrayElements, PubSubBroker pubSubBroker, String authPassword) {
+        this(socket, connectionRegistry, commandParser, maxValueBytes, maxArrayElements, commandParser.metrics(),
+                pubSubBroker, authPassword);
     }
 
     private ClientHandler(Socket socket, ConnectionRegistry connectionRegistry, CommandParser commandParser,
                           int maxValueBytes, int maxArrayElements, ServerMetrics metrics, PubSubBroker pubSubBroker) {
+        this(socket, connectionRegistry, commandParser, maxValueBytes, maxArrayElements, metrics, pubSubBroker, "");
+    }
+
+    private ClientHandler(Socket socket, ConnectionRegistry connectionRegistry, CommandParser commandParser,
+                          int maxValueBytes, int maxArrayElements, ServerMetrics metrics, PubSubBroker pubSubBroker,
+                          String authPassword) {
         this.socket = socket;
         this.connectionRegistry = connectionRegistry;
         this.commandParser = commandParser;
@@ -70,6 +86,8 @@ public final class ClientHandler implements Runnable {
         this.maxArrayElements = maxArrayElements;
         this.metrics = metrics;
         this.pubSubBroker = pubSubBroker;
+        this.authPassword = authPassword == null ? "" : authPassword;
+        this.authenticated = this.authPassword.isEmpty();
     }
 
     @Override
@@ -113,6 +131,13 @@ public final class ClientHandler implements Runnable {
         }
         String name = tokens.getFirst().toUpperCase(Locale.ROOT);
         List<String> arguments = tokens.subList(1, tokens.size());
+        if ("AUTH".equals(name)) {
+            return handleAuth(arguments, resp, output);
+        }
+        if (!authenticated && !Set.of("PING", "QUIT").contains(name)) {
+            writeError(output, "NOAUTH Authentication required");
+            return false;
+        }
         if (Set.of("SUBSCRIBE", "UNSUBSCRIBE", "PUBLISH").contains(name)) {
             return handlePubSub(name, arguments, resp, output);
         }
@@ -182,6 +207,26 @@ public final class ClientHandler implements Runnable {
             writeError(output, exception.getMessage());
             return false;
         }
+    }
+
+    private boolean handleAuth(List<String> arguments, boolean resp, OutputStream output) throws IOException {
+        if (arguments.size() != 1) {
+            writeError(output, "wrong number of arguments for 'auth' command");
+            return false;
+        }
+        if (authPassword.isEmpty()) {
+            writeResponse(new CommandResult("OK"), "AUTH", arguments, resp, output);
+            return false;
+        }
+        boolean matches = MessageDigest.isEqual(authPassword.getBytes(StandardCharsets.UTF_8),
+                arguments.getFirst().getBytes(StandardCharsets.UTF_8));
+        if (matches) {
+            authenticated = true;
+            writeResponse(new CommandResult("OK"), "AUTH", arguments, resp, output);
+        } else {
+            writeError(output, "invalid username-password pair");
+        }
+        return false;
     }
 
     private void writeResponse(CommandResult result, String name, List<String> arguments,

@@ -26,7 +26,7 @@ public final class RespEncoder {
         if ("PING".equals(commandName) && arguments.isEmpty()) {
             return ("+" + response + "\r\n").getBytes(StandardCharsets.UTF_8);
         }
-        if (Set.of("SET", "QUIT", "MULTI", "DISCARD", "EXEC").contains(commandName)
+        if (Set.of("SET", "QUIT", "AUTH", "MULTI", "DISCARD", "EXEC").contains(commandName)
                 || "QUEUED".equals(response)) {
             return ("+" + response + "\r\n").getBytes(StandardCharsets.UTF_8);
         }
