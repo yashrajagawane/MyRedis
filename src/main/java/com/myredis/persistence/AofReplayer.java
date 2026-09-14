@@ -23,6 +23,10 @@ public final class AofReplayer {
                 long recordStart = file.getFilePointer();
                 String line = file.readLine();
                 if (line == null || line.isBlank()) continue;
+                if (file.getFilePointer() >= fileSize && !hasRecordTerminator(file, recordStart)) {
+                    file.setLength(recordStart);
+                    return replayed;
+                }
                 try {
                     List<String> arguments = PersistenceCodec.decode(
                             new String(line.getBytes(StandardCharsets.ISO_8859_1), StandardCharsets.US_ASCII));
@@ -33,10 +37,6 @@ public final class AofReplayer {
                     }
                     replayed++;
                 } catch (IllegalArgumentException | CommandParseException exception) {
-                    if (file.getFilePointer() >= fileSize && !hasRecordTerminator(file, recordStart)) {
-                        file.setLength(recordStart);
-                        return replayed;
-                    }
                     throw new IOException("Could not replay AOF command", exception);
                 }
             }
