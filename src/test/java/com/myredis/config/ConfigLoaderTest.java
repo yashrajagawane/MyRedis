@@ -25,6 +25,7 @@ class ConfigLoaderTest {
         assertEquals(10_000, loaded.maxConnections());
         assertEquals("", loaded.authPassword());
         assertEquals(0, loaded.clientIdleTimeoutSeconds());
+        assertEquals(0, loaded.maxCommandsPerSecond());
         Files.deleteIfExists(config);
     }
 
@@ -95,5 +96,16 @@ class ConfigLoaderTest {
         IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
                 () -> ConfigLoader.load(new String[]{"--port"}));
         assertTrue(error.getMessage().contains("--port requires a value"));
+    }
+
+    @Test
+    void rejectsNegativeCommandRateLimit() throws Exception {
+        Path config = Files.createTempFile("myredis", ".conf");
+        Files.writeString(config, "limits.max.commands.per.second=-1\n");
+
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> ConfigLoader.load(new String[]{"--config", config.toString()}));
+        assertTrue(error.getMessage().contains("max commands per second"));
+        Files.deleteIfExists(config);
     }
 }

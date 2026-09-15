@@ -29,6 +29,7 @@ server starts.
 | `limits.max.array.elements` | `1024` | `MYREDIS_MAX_ARRAY_ELEMENTS` | Maximum RESP command-array length |
 | `limits.max.connections` | `10000` | `MYREDIS_MAX_CONNECTIONS` | Maximum accepted client connections |
 | `limits.client.idle.timeout.seconds` | `0` | `MYREDIS_CLIENT_IDLE_TIMEOUT_SECONDS` | Disconnect inactive clients; `0` disables the timeout |
+| `limits.max.commands.per.second` | `0` | `MYREDIS_MAX_COMMANDS_PER_SECOND` | Per-client fixed-window command limit; `0` disables it |
 
 ## Examples
 

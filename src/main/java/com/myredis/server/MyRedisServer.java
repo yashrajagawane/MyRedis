@@ -36,6 +36,7 @@ public final class MyRedisServer {
     private final int maxArrayElements;
     private final String authPassword;
     private final int clientIdleTimeoutSeconds;
+    private final int maxCommandsPerSecond;
     private volatile ServerSocket serverSocket;
 
     public MyRedisServer(int port) {
@@ -60,6 +61,7 @@ public final class MyRedisServer {
         this.maxArrayElements = maxArrayElements;
         this.authPassword = "";
         this.clientIdleTimeoutSeconds = 0;
+        this.maxCommandsPerSecond = 0;
         this.connectionRegistry = new ConnectionRegistry(maxConnections);
         this.pubSubBroker = new PubSubBroker();
         this.expiration = new ExpirationManager();
@@ -105,6 +107,14 @@ public final class MyRedisServer {
                          ExpirationManager expiration, PersistenceManager persistence,
                          int maxValueBytes, int maxArrayElements, int maxConnections, String authPassword,
                          int clientIdleTimeoutSeconds) {
+        this(host, port, storage, commandParser, expiration, persistence, maxValueBytes, maxArrayElements,
+                maxConnections, authPassword, clientIdleTimeoutSeconds, 0);
+    }
+
+    public MyRedisServer(String host, int port, InMemoryStorageEngine storage, CommandParser commandParser,
+                         ExpirationManager expiration, PersistenceManager persistence,
+                         int maxValueBytes, int maxArrayElements, int maxConnections, String authPassword,
+                         int clientIdleTimeoutSeconds, int maxCommandsPerSecond) {
         if (port < 0 || port > 65_535) {
             throw new IllegalArgumentException("port must be between 0 and 65535");
         }
@@ -120,6 +130,8 @@ public final class MyRedisServer {
             throw new IllegalArgumentException("client idle timeout is too large");
         }
         this.clientIdleTimeoutSeconds = clientIdleTimeoutSeconds;
+        if (maxCommandsPerSecond < 0) throw new IllegalArgumentException("max commands per second must not be negative");
+        this.maxCommandsPerSecond = maxCommandsPerSecond;
         this.connectionRegistry = new ConnectionRegistry(maxConnections);
         this.pubSubBroker = new PubSubBroker();
         this.storage = storage;
@@ -149,7 +161,8 @@ public final class MyRedisServer {
                     }
                     commandParser.metrics().clientConnected();
                     clientExecutor.submit(new ClientHandler(client, connectionRegistry, commandParser,
-                            maxValueBytes, maxArrayElements, pubSubBroker, authPassword, clientIdleTimeoutSeconds));
+                            maxValueBytes, maxArrayElements, pubSubBroker, authPassword, clientIdleTimeoutSeconds,
+                            maxCommandsPerSecond));
                     LOGGER.info("Client connected from {}", client.getRemoteSocketAddress());
                 } catch (IOException exception) {
                     if (running.get()) {

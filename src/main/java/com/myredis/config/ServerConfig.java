@@ -19,7 +19,8 @@ public record ServerConfig(
         int maxArrayElements,
         int maxConnections,
         String authPassword,
-        int clientIdleTimeoutSeconds) {
+        int clientIdleTimeoutSeconds,
+        int maxCommandsPerSecond) {
 
     public ServerConfig {
         if (host == null || host.isBlank()) throw new IllegalArgumentException("host must not be blank");
@@ -39,5 +40,6 @@ public record ServerConfig(
         if (clientIdleTimeoutSeconds > Integer.MAX_VALUE / 1_000) {
             throw new IllegalArgumentException("client idle timeout is too large");
         }
+        if (maxCommandsPerSecond < 0) throw new IllegalArgumentException("max commands per second must not be negative");
     }
 }
