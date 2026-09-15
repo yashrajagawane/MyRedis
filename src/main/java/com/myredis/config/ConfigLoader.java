@@ -35,7 +35,8 @@ public final class ConfigLoader {
                     Integer.parseInt(requiredProperty(values, "limits.max.array.elements")),
                     Integer.parseInt(requiredProperty(values, "limits.max.connections")),
                     values.getProperty("auth.password", ""),
-                    Integer.parseInt(requiredProperty(values, "limits.client.idle.timeout.seconds")));
+                    Integer.parseInt(requiredProperty(values, "limits.client.idle.timeout.seconds")),
+                    Integer.parseInt(requiredProperty(values, "limits.max.commands.per.second")));
         } catch (IllegalArgumentException exception) {
             throw new IllegalArgumentException("Invalid MyRedis configuration: " + exception.getMessage(), exception);
         }
@@ -56,6 +57,7 @@ public final class ConfigLoader {
         values.setProperty("limits.max.connections", "10000");
         values.setProperty("auth.password", "");
         values.setProperty("limits.client.idle.timeout.seconds", "0");
+        values.setProperty("limits.max.commands.per.second", "0");
         return values;
     }
 
@@ -109,6 +111,7 @@ public final class ConfigLoader {
         map(values, environment, "MYREDIS_MAX_CONNECTIONS", "limits.max.connections");
         map(values, environment, "MYREDIS_AUTH_PASSWORD", "auth.password");
         map(values, environment, "MYREDIS_CLIENT_IDLE_TIMEOUT_SECONDS", "limits.client.idle.timeout.seconds");
+        map(values, environment, "MYREDIS_MAX_COMMANDS_PER_SECOND", "limits.max.commands.per.second");
     }
 
     private static void map(Properties values, Map<String, String> environment, String env, String key) {

@@ -38,6 +38,7 @@ public final class ClientHandler implements Runnable {
     private final PubSubBroker pubSubBroker;
     private final String authPassword;
     private final int clientIdleTimeoutSeconds;
+    private final int maxCommandsPerSecond;
     private final BlockingQueue<List<String>> pubSubMessages = new ArrayBlockingQueue<>(PubSubBroker.MAX_PENDING_MESSAGES);
     private final Set<String> subscribedChannels = new java.util.HashSet<>();
     private volatile boolean closed;
@@ -77,7 +78,14 @@ public final class ClientHandler implements Runnable {
                          int maxValueBytes, int maxArrayElements, PubSubBroker pubSubBroker, String authPassword,
                          int clientIdleTimeoutSeconds) {
         this(socket, connectionRegistry, commandParser, maxValueBytes, maxArrayElements, commandParser.metrics(),
-                pubSubBroker, authPassword, clientIdleTimeoutSeconds);
+                pubSubBroker, authPassword, clientIdleTimeoutSeconds, 0);
+    }
+
+    public ClientHandler(Socket socket, ConnectionRegistry connectionRegistry, CommandParser commandParser,
+                         int maxValueBytes, int maxArrayElements, PubSubBroker pubSubBroker, String authPassword,
+                         int clientIdleTimeoutSeconds, int maxCommandsPerSecond) {
+        this(socket, connectionRegistry, commandParser, maxValueBytes, maxArrayElements, commandParser.metrics(),
+                pubSubBroker, authPassword, clientIdleTimeoutSeconds, maxCommandsPerSecond);
     }
 
     private ClientHandler(Socket socket, ConnectionRegistry connectionRegistry, CommandParser commandParser,
@@ -95,6 +103,13 @@ public final class ClientHandler implements Runnable {
     private ClientHandler(Socket socket, ConnectionRegistry connectionRegistry, CommandParser commandParser,
                           int maxValueBytes, int maxArrayElements, ServerMetrics metrics, PubSubBroker pubSubBroker,
                           String authPassword, int clientIdleTimeoutSeconds) {
+        this(socket, connectionRegistry, commandParser, maxValueBytes, maxArrayElements, metrics, pubSubBroker,
+                authPassword, clientIdleTimeoutSeconds, 0);
+    }
+
+    private ClientHandler(Socket socket, ConnectionRegistry connectionRegistry, CommandParser commandParser,
+                          int maxValueBytes, int maxArrayElements, ServerMetrics metrics, PubSubBroker pubSubBroker,
+                          String authPassword, int clientIdleTimeoutSeconds, int maxCommandsPerSecond) {
         this.socket = socket;
         this.connectionRegistry = connectionRegistry;
         this.commandParser = commandParser;
@@ -109,7 +124,12 @@ public final class ClientHandler implements Runnable {
             throw new IllegalArgumentException("client idle timeout is too large");
         }
         this.clientIdleTimeoutSeconds = clientIdleTimeoutSeconds;
+        if (maxCommandsPerSecond < 0) throw new IllegalArgumentException("max commands per second must not be negative");
+        this.maxCommandsPerSecond = maxCommandsPerSecond;
     }
+
+    private long rateWindowStartedNanos = System.nanoTime();
+    private int commandsInRateWindow;
 
     @Override
     public void run() {
@@ -151,6 +171,10 @@ public final class ClientHandler implements Runnable {
     }
 
     private boolean handleCommand(List<String> tokens, boolean resp, OutputStream output) throws IOException {
+        if (maxCommandsPerSecond > 0 && !allowCommand()) {
+            writeError(output, "command rate limit exceeded");
+            return false;
+        }
         if (tokens.isEmpty() || tokens.getFirst().isBlank()) {
             writeResponse(CommandResult.error("empty command"), "", List.of(), resp, output);
             return false;
@@ -233,6 +257,17 @@ public final class ClientHandler implements Runnable {
             writeError(output, exception.getMessage());
             return false;
         }
+    }
+
+    private boolean allowCommand() {
+        long now = System.nanoTime();
+        if (now - rateWindowStartedNanos >= 1_000_000_000L) {
+            rateWindowStartedNanos = now;
+            commandsInRateWindow = 0;
+        }
+        if (commandsInRateWindow >= maxCommandsPerSecond) return false;
+        commandsInRateWindow++;
+        return true;
     }
 
     private boolean handleAuth(List<String> arguments, boolean resp, OutputStream output) throws IOException {
