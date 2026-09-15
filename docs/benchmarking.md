@@ -57,4 +57,7 @@ using the same methodology and record any changed environment details.
 The current measured baselines are maintained in
 [BENCHMARKS.md](../BENCHMARKS.md). Network latency, p95/p99 latency, memory
 usage, and long-duration soak results are not yet part of the repository's
-automated benchmark report.
+automated benchmark report. Runtime `INFO` reports approximate command p95 and
+p99 latency using fixed upper-bound buckets; these operational percentiles are
+separate from a future end-to-end benchmark report, which must measure TCP and
+protocol overhead explicitly.

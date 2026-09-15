@@ -13,6 +13,8 @@ JDK atomics and adders rather than an external metrics framework.
 | `connected_clients` | Currently registered client connections |
 | `commands_processed` | Commands entering command execution |
 | `command_latency_avg_us` | Average measured command execution time in microseconds |
+| `command_latency_p95_us` | Approximate 95th-percentile command latency using a fixed upper-bound bucket |
+| `command_latency_p99_us` | Approximate 99th-percentile command latency using a fixed upper-bound bucket |
 | `command_latency_max_us` | Maximum measured command execution time in microseconds |
 | `expired_keys` | Successful expiry-marker removals |
 | `aof_writes` | Successful AOF appends |
@@ -50,7 +52,7 @@ activity, not necessarily a problem.
 ## Current gaps
 
 There is no Prometheus endpoint, OpenTelemetry exporter, structured JSON log
-schema, per-command latency histogram, p95/p99 latency, memory gauge, CPU gauge,
+schema, per-command latency histogram, memory gauge, CPU gauge,
 or durable audit event stream. Metrics also do not distinguish every storage
 operation or report network queueing. These should be added only with a clear
 deployment requirement and tests for their overhead and correctness.
