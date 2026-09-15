@@ -1,8 +1,7 @@
 # Architecture
 
-This document describes the implementation currently on `main`. The original
-design notes in [Architecture.md](../Architecture.md) remain useful historical
-context; this guide focuses on the code that is actually running today.
+This document describes the implementation currently on `main` and focuses on
+the code that is actually running today.
 
 ## System boundary
 
