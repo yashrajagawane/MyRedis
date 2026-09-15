@@ -9,12 +9,18 @@ import java.util.stream.Collectors;
 
 /** Lightweight process-local counters for operational diagnostics. */
 public final class ServerMetrics {
+    private static final long[] LATENCY_BUCKET_UPPER_BOUNDS_NANOS = {
+        1_000, 5_000, 10_000, 25_000, 50_000, 100_000, 250_000, 500_000,
+        1_000_000, 2_500_000, 5_000_000, 10_000_000, 25_000_000, 50_000_000,
+        100_000_000, 250_000_000, 500_000_000, 1_000_000_000, Long.MAX_VALUE
+    };
     private final AtomicLong commandsProcessed = new AtomicLong();
     private final AtomicLong connectedClients = new AtomicLong();
     private final AtomicLong keyspaceHits = new AtomicLong();
     private final AtomicLong keyspaceMisses = new AtomicLong();
     private final LongAdder commandLatencyNanos = new LongAdder();
     private final AtomicLong maxCommandLatencyNanos = new AtomicLong();
+    private final LongAdder[] commandLatencyBuckets = createLatencyBuckets();
     private final Map<String, LongAdder> commandsByName = new ConcurrentHashMap<>();
 
     public void recordCommand(String command) {
@@ -26,6 +32,12 @@ public final class ServerMetrics {
         long sanitizedLatency = Math.max(0, latencyNanos);
         commandLatencyNanos.add(sanitizedLatency);
         maxCommandLatencyNanos.accumulateAndGet(sanitizedLatency, Math::max);
+        for (int index = 0; index < LATENCY_BUCKET_UPPER_BOUNDS_NANOS.length; index++) {
+            if (sanitizedLatency <= LATENCY_BUCKET_UPPER_BOUNDS_NANOS[index]) {
+                commandLatencyBuckets[index].increment();
+                break;
+            }
+        }
     }
 
     public void clientConnected() {
@@ -65,13 +77,38 @@ public final class ServerMetrics {
         long averageLatencyMicros = processed == 0
                 ? 0 : commandLatencyNanos.sum() / processed / 1_000;
         long maxLatencyMicros = maxCommandLatencyNanos.get() / 1_000;
+        long p95LatencyMicros = percentileLatencyMicros(95, processed);
+        long p99LatencyMicros = percentileLatencyMicros(99, processed);
         return "# Server\r\nmyredis_runtime:java21\r\n# Clients\r\nconnected_clients:"
                 + connectedClients.get() + "\r\n# Stats\r\ncommands_processed:"
                 + processed + "\r\ncommand_latency_avg_us:" + averageLatencyMicros
+                + "\r\ncommand_latency_p95_us:" + p95LatencyMicros
+                + "\r\ncommand_latency_p99_us:" + p99LatencyMicros
                 + "\r\ncommand_latency_max_us:" + maxLatencyMicros + "\r\nexpired_keys:" + expiredKeys
                 + "\r\naof_writes:" + aofWrites + "\r\nsnapshots:" + snapshots
                 + "\r\npersistence_errors:" + persistenceErrors
                 + "\r\nkeyspace_hits:" + keyspaceHits.get()
                 + "\r\nkeyspace_misses:" + keyspaceMisses.get() + "\r\n" + commandCounts + "\r\n";
+    }
+
+    private long percentileLatencyMicros(int percentile, long sampleCount) {
+        if (sampleCount == 0) return 0;
+        long target = Math.max(1, (sampleCount * percentile + 99) / 100);
+        long cumulative = 0;
+        for (int index = 0; index < commandLatencyBuckets.length; index++) {
+            cumulative += commandLatencyBuckets[index].sum();
+            if (cumulative >= target) {
+                return LATENCY_BUCKET_UPPER_BOUNDS_NANOS[index] == Long.MAX_VALUE
+                        ? Long.MAX_VALUE / 1_000
+                        : LATENCY_BUCKET_UPPER_BOUNDS_NANOS[index] / 1_000;
+            }
+        }
+        return Long.MAX_VALUE / 1_000;
+    }
+
+    private static LongAdder[] createLatencyBuckets() {
+        LongAdder[] buckets = new LongAdder[LATENCY_BUCKET_UPPER_BOUNDS_NANOS.length];
+        for (int index = 0; index < buckets.length; index++) buckets[index] = new LongAdder();
+        return buckets;
     }
 }

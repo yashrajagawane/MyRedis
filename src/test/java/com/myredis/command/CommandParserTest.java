@@ -54,6 +54,8 @@ class CommandParserTest {
         assertTrue(info.contains("keyspace_misses:1"));
         assertTrue(info.contains("commands_processed:5"));
         assertTrue(info.contains("command_latency_avg_us:"));
+        assertTrue(info.contains("command_latency_p95_us:"));
+        assertTrue(info.contains("command_latency_p99_us:"));
         assertTrue(info.contains("command_latency_max_us:"));
         assertTrue(info.contains("expired_keys:0"));
         assertTrue(info.contains("aof_writes:0"));
