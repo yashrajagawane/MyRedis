@@ -11,6 +11,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,6 +25,7 @@ public final class PersistenceManager implements AutoCloseable {
     private final AtomicLong aofWrites = new AtomicLong();
     private final AtomicLong snapshots = new AtomicLong();
     private final AtomicLong persistenceErrors = new AtomicLong();
+    private final AtomicBoolean closed = new AtomicBoolean();
     private final ReentrantLock mutationLock = new ReentrantLock(true);
     private AofWriter aofWriter;
 
@@ -59,6 +61,7 @@ public final class PersistenceManager implements AutoCloseable {
 
     public void record(List<String> command) {
         if (!enabled) return;
+        if (closed.get()) throw new IllegalStateException("Persistence manager is closed");
         try {
             aofWriter.append(command);
             aofWrites.incrementAndGet();
@@ -69,6 +72,7 @@ public final class PersistenceManager implements AutoCloseable {
     }
 
     public <T> T withMutation(Supplier<T> mutation) {
+        if (closed.get()) throw new IllegalStateException("Persistence manager is closed");
         mutationLock.lock();
         try {
             return mutation.get();
@@ -91,6 +95,7 @@ public final class PersistenceManager implements AutoCloseable {
 
     public synchronized void snapshot() throws IOException {
         if (!enabled) return;
+        if (closed.get()) throw new IOException("Persistence manager is closed");
         mutationLock.lock();
         try {
             new SnapshotWriter().write(snapshotPath, storage, aofWriter.size());
@@ -118,11 +123,19 @@ public final class PersistenceManager implements AutoCloseable {
     @Override
     public synchronized void close() {
         if (!enabled) return;
+        if (!closed.compareAndSet(false, true)) return;
         snapshotExecutor.shutdownNow();
         try {
-            snapshot();
-        } catch (IOException exception) {
-            LOGGER.error("Could not write final snapshot during shutdown", exception);
+            mutationLock.lock();
+            try {
+                new SnapshotWriter().write(snapshotPath, storage, aofWriter.size());
+                snapshots.incrementAndGet();
+            } catch (IOException exception) {
+                persistenceErrors.incrementAndGet();
+                LOGGER.error("Could not write final snapshot during shutdown", exception);
+            } finally {
+                mutationLock.unlock();
+            }
         } finally {
             try {
                 aofWriter.close();

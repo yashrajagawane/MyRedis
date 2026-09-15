@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class AofWriter implements AutoCloseable {
     private final Path path;
@@ -18,6 +19,7 @@ public final class AofWriter implements AutoCloseable {
     private final BufferedWriter writer;
     private final FsyncPolicy fsyncPolicy;
     private final ScheduledExecutorService flushExecutor;
+    private final AtomicBoolean closed = new AtomicBoolean();
 
     public AofWriter(Path path) throws IOException {
         this(path, FsyncPolicy.ALWAYS);
@@ -40,6 +42,7 @@ public final class AofWriter implements AutoCloseable {
     }
 
     public synchronized void append(List<String> command) throws IOException {
+        ensureOpen();
         writer.write(PersistenceCodec.encode(command));
         writer.newLine();
         writer.flush();
@@ -47,16 +50,22 @@ public final class AofWriter implements AutoCloseable {
     }
 
     public synchronized long size() throws IOException {
+        ensureOpen();
         writer.flush();
         return Files.size(path);
     }
 
     @Override
     public synchronized void close() throws IOException {
+        if (!closed.compareAndSet(false, true)) return;
         if (flushExecutor != null) flushExecutor.shutdownNow();
         writer.flush();
         channel.force(false);
         writer.close();
+    }
+
+    private void ensureOpen() throws IOException {
+        if (closed.get()) throw new IOException("AOF writer is closed");
     }
 
     private synchronized void forceQuietly() {

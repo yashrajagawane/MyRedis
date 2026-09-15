@@ -76,6 +76,21 @@ class PersistenceRecoveryTest {
     }
 
     @Test
+    void closingPersistenceTwiceIsSafeAndClosesAofWriter() throws Exception {
+        Path directory = Files.createTempDirectory("myredis-persistence-close-");
+        ExpirationManager expiration = new ExpirationManager();
+        InMemoryStorageEngine storage = new InMemoryStorageEngine(expiration);
+        PersistenceManager persistence = new PersistenceManager(
+                directory.resolve("myredis.aof"), directory.resolve("myredis.snapshot"), storage);
+
+        persistence.close();
+        persistence.close();
+
+        assertThrows(IllegalStateException.class,
+                () -> persistence.record(java.util.List.of("SET", "key", "value")));
+    }
+
+    @Test
     void truncatesAnIncompleteFinalAofRecord() throws Exception {
         Path directory = Files.createTempDirectory("myredis-aof-tail-");
         Path aof = directory.resolve("myredis.aof");

@@ -61,6 +61,11 @@ incomplete, the replayer truncates the incomplete tail and keeps earlier valid
 records. Recovery failures increment `persistence_errors` and are surfaced to
 the caller.
 
+Persistence shutdown is idempotent. The first `close()` stops scheduled
+snapshots, writes the final snapshot, flushes and closes the AOF, and records
+any finalization error. Repeated close calls are safe and do not reuse closed
+file resources.
+
 ## Guarantees and limitations
 
 The current design provides ordered successful mutation logging, configurable
