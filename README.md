@@ -178,6 +178,8 @@ Storage is held in a concurrent keyspace. Mutable values are protected with
 focused per-value locking, while command-level mutation ordering is coordinated
 for persistence consistency.
 
+
+
 ## Persistence and recovery
 
 Persistence is enabled by default:
